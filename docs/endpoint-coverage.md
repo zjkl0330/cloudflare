@@ -150,6 +150,18 @@
 | rulesets 列表 | `GET /zones/{z}/rulesets` | 200 | ✅ 实测 200 |
 | account entrypoint http_request_firewall_custom | `GET /accounts/{a}/rulesets/phases/http_request_firewall_custom/entrypoint` | 404 | 🟠 code 10003 could not find entrypoint ruleset in the http_request_firewa |
 
+## Git 仓库连接（2026-11-01 新增，未实测）
+
+> 这一节不是证据文件生成的：我们**没有**可用的 GitHub/GitLab 凭据，也没在真账号上装过 CF 的 Git App，
+> 所以只锁「发出去的请求形状」，真实 PATCH 留给用户真机验收。写侧仍走本机写开关 + 预览确认两道闸门。
+
+| 动作 | 请求 | 状态 | 结论与边界 |
+|---|---|---|---|
+| Pages 连接已有仓库 | `PATCH /accounts/{a}/pages/projects/{p}`（body: `source` / `build_config` / `production_branch`） | 🟡 形状来自官方规格 | 只能连**已有**项目到**已有**仓库；账号必须先在 dashboard 装过 GitHub/GitLab 集成，OAuth 授权无法用 API 完成；仅 APK 直连可发（网页模式整表单灰掉） |
+| 列我的仓库 · GitHub | `GET https://api.github.com/user/repos` | 🟡 仅 APK | 用用户自备 PAT（classic `repo` 或细粒度 Metadata/Contents 读）；浏览器无 CORS，网页模式不提供 |
+| 列我的仓库 · GitLab | `GET https://gitlab.com/api/v4/projects?membership=true` | 🟡 仅 APK | 用 `read_api` 范围的 PAT；同样无 CORS |
+| Workers 连接构建仓库 | —（无官方 API） | 🚫 做不了 | Workers Builds 只能在 dashboard 操作；App 仅在本机记录 owner/repo/分支并提供 dashboard 跳转，界面明写「仅记录 · 不构建」 |
+
 ## 本阶段刻意没发请求的写操作（需授权后逐项补测）
 
 | 动作 | 请求 | 前置条件 |

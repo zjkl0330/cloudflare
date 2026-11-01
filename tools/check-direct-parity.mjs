@@ -341,5 +341,48 @@ expectOne("PUT workers/:s/subdomain（上游 POST）", `/accounts/${ACC}/workers
   bodyIncludes: `"enabled":true,"previews_enabled":false`,
 });
 
+// ---- Pages 连接已有 Git 仓库（2026-11-01）：客户端 PATCH /v1/pages/{p}/git →
+// 上游 PATCH 项目对象。⚠️ 请求形状按官方规格拼，**没有真实账号实测**（要连的账号必须先装过 Git App），
+// 所以这里只锁「我们发出去的到底是什么」，不代表上游一定 200。
+await runWrite("PATCH", "/v1/pages/proj/git", {
+  source: { type: "github", config: { owner: "octo", repo_name: "site", production_branch: "main" } },
+  build_config: { build_command: "npm run build", destination_dir: "dist" },
+});
+expectOne("PATCH Pages git（上游 PATCH 项目对象 + source/build_config）", `/accounts/${ACC}/pages/projects/proj`, {
+  method: "PATCH",
+  bodyIncludes: `"source":{"type":"github"`,
+});
+{
+  const hit = captured.find((c) => c.url.endsWith("/pages/projects/proj") && c.method === "PATCH");
+  const body = String(hit?.body || "");
+  // 只带白名单字段：多一个未知键上游就可能整条 400，而且 deployments_enabled 必须是 true
+  const parsed = body ? JSON.parse(body) : {};
+  const topKeys = Object.keys(parsed).sort().join(",");
+  if (topKeys !== "build_config,production_branch,source" || parsed.source?.config?.deployments_enabled !== true) {
+    console.error(`❌ Pages git 上游体字段不对：顶层=${topKeys}，deployments_enabled=${parsed.source?.config?.deployments_enabled}`);
+    fail = true;
+  } else { pass++; console.log("✅ Pages git 上游体只带 source/build_config/production_branch"); }
+}
+
+// 负例：顶层 production_branch 与 source.config 里的不一致必须被拒（两处不一致上游只会挑一个）
+rejected = false;
+try {
+  await runWrite("PATCH", "/v1/pages/proj/git", {
+    source: { type: "github", config: { owner: "octo", repo_name: "site", production_branch: "main" } },
+    production_branch: "dev",
+  });
+} catch { rejected = true; }
+if (!rejected) { console.error("❌ Pages git 顶层 production_branch 与 source.config 不一致应被拒绝"); fail = true; } else { pass++; console.log("✅ Pages git 两处 branch 不一致被拒绝"); }
+
+// 负例：白名单外的字段必须被拒（不夹带未验证字段上游）
+rejected = false;
+try {
+  await runWrite("PATCH", "/v1/pages/proj/git", {
+    source: { type: "github", config: { owner: "octo", repo_name: "site", production_branch: "main" } },
+    deploy_on_push: true,
+  });
+} catch { rejected = true; }
+if (!rejected) { console.error("❌ Pages git 白名单外字段应被拒绝"); fail = true; } else { pass++; console.log("✅ Pages git 白名单外字段被拒绝"); }
+
 console.log(`\n合计：${pass} 条通过，${fail ? "有失败 ❌" : "0 条失败 ✅"}`);
 process.exit(fail ? 1 : 0);

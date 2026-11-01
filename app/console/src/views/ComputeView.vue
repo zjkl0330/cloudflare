@@ -5,14 +5,21 @@ import { useRouter } from "vue-router";
 import ErrorNote from "../components/ErrorNote.vue";
 import RowCard from "../components/RowCard.vue";
 import ComputeBoard from "../components/compute/ComputeBoard.vue";
+import GitConnectDialog from "../components/compute/GitConnectDialog.vue";
+import WorkerRepoDialog from "../components/compute/WorkerRepoDialog.vue";
 import WorkersQuota from "../components/ver/WorkersQuota.vue";
 import CleanupPanel from "../components/ver/CleanupPanel.vue";
 import { api, apiAs, forceFreshWindow, GwError, pageDeployed, pageLastActivity, workerName } from "../lib/api";
+import { loadConfig } from "../lib/config";
+import { getWorkerRepo, type GitPlatform, type WorkerRepoLink } from "../lib/git";
 import { dt, rel } from "../lib/fmt";
 import { labelOf, type CfAccount } from "../lib/accounts";
 import { agg, aggAccounts, aggSkipped, focusAccount, mapLimit } from "../lib/aggregate";
 
 const nav = useRouter();
+
+/** 当前单账号 id：本机记录（Workers 仓库）按账号分开存 */
+const accountId = computed(() => loadConfig().account);
 
 /* ---------- 多账号合一（只读）：Workers / Pages 两份清单直接相加 ---------- */
 const aggErrors = ref<Array<{ accName: string; label: string; err: GwError }>>([]);
@@ -106,6 +113,7 @@ const workerCards = [
 function workerActionsFor(w: any) {
   return [
     ...workerCards.map((k) => ({ ico: k.ico, label: k.label, go: `${k.c}|${workerName(w)}` })),
+    { ico: "git", label: "仓库", go: "repo" },
     {
       ico: "logs",
       label: "日志",
@@ -116,6 +124,7 @@ function workerActionsFor(w: any) {
 }
 
 function onWorkerGo(a: any, w: any) {
+  if (a.go === "repo") { repoWorker.value = w; return; }
   if (!a.go.includes("|")) return;
   const [c] = a.go.split("|");
   if (agg.on && w.__acc) focusAccount(String(w.__acc)); // 详情页读"当前账号"，先切过去
@@ -147,6 +156,60 @@ async function loadPages() {
 
 const hasProject = computed(() => pages.value.length > 0);
 
+/* ---------- Pages 连接 Git 仓库 / Workers 仓库记录（2026-11-01） ----------
+ * Pages 是真写（PATCH 项目对象，仅 APK 直连）；Workers Builds 没有官方 API，
+ * 所以 Workers 只把 owner/repo 记在本机并给一个 dashboard 入口（UI 明写"仅记录 · 不构建"）。 */
+const gitProject = ref<any | null>(null);
+const gitNote = ref("");
+const repoWorker = ref<any | null>(null);
+const repoTick = ref(0);
+
+const repoAccount = computed(() => String(repoWorker.value?.__acc ?? accountId.value));
+const repoWorkerName = computed(() => workerName(repoWorker.value ?? {}));
+
+/** 列表里的项目对象带 source 时才算"已连接"；没有这个字段就不猜 */
+function pageSource(p: any): { platform: GitPlatform; owner: string; repo: string; branch: string } | null {
+  const t = String(p?.source?.type ?? "");
+  if (t !== "github" && t !== "gitlab") return null;
+  const c = p.source?.config ?? {};
+  const owner = String(c.owner ?? "");
+  const repo = String(c.repo_name ?? c.repo ?? "");
+  if (!owner || !repo) return null;
+  return { platform: t, owner, repo, branch: String(c.production_branch ?? p.production_branch ?? "") };
+}
+
+function pageGitBadges(p: any): { text: string; cls?: string; title?: string }[] {
+  const s = pageSource(p);
+  return s ? [{ text: `Git · ${s.owner}/${s.repo}`, title: `source.type=${s.platform} · 生产分支 ${s.branch || "—"}（来自项目对象的 source 字段）` }] : [];
+}
+
+/** 本机记录按「账号|Worker」存；读一次成表，避免每一行都去解析 localStorage */
+const workerRepoMap = computed(() => {
+  repoTick.value;
+  const m = new Map<string, WorkerRepoLink>();
+  for (const w of workers.value) {
+    const acc = String(w.__acc ?? accountId.value);
+    const r = getWorkerRepo(acc, workerName(w));
+    if (r) m.set(acc + "|" + workerName(w), r);
+  }
+  return m;
+});
+function workerRepoOf(w: any): WorkerRepoLink | null {
+  return workerRepoMap.value.get(String(w.__acc ?? accountId.value) + "|" + workerName(w)) ?? null;
+}
+
+function workerRepoBadges(w: any): { text: string; title?: string }[] {
+  const r = workerRepoOf(w);
+  if (!r) return [];
+  const who = r.platform === "gitlab" ? "GitLab" : "GitHub";
+  return [{ text: "仓库已记", title: `本机记录：${who} ${r.owner}/${r.repo}${r.branch ? " · " + r.branch : ""}（仅记录、不构建；真连去 dashboard）` }];
+}
+
+function onGitConnected(v: { owner: string; repo: string; branch: string }) {
+  gitNote.value = `已连接 ${v.owner}/${v.repo} · 分支 ${v.branch}（项目会按 Git 构建，旧部署记录仍可回滚）`;
+  refresh();
+}
+
 /** 项目详情拆成与 Workers 详情同一套分区：点行进详情，动作宫格直接落到对应卡片 */
 const pageCards = [
   { ico: "settings", label: "概览", c: "overview" },
@@ -155,7 +218,17 @@ const pageCards = [
   { ico: "secrets", label: "环境变量", c: "env" },
   { ico: "buildlog", label: "构建日志", c: "logs" },
 ];
-const projectActions = pageCards.map((k) => ({ ico: k.ico, label: k.label, go: `${k.c}|${k.c}` }));
+const projectActions = [
+  ...pageCards.map((k) => ({ ico: k.ico, label: k.label, go: `${k.c}|${k.c}` })),
+];
+
+/** 合并视图只读：连接仓库是写操作，必须落在单个账号上（点了直接说原因，不静默用错账号） */
+function projectActionsFor() {
+  return [
+    { ico: "git", label: "连接仓库", go: "git", why: agg.on ? "合并视图只读：写操作要切到单个账号再进这一屏。" : undefined },
+    ...projectActions,
+  ];
+}
 
 function pagePath(p: any) {
   return "/pages/" + encodeURIComponent(String(p.name ?? ""));
@@ -165,6 +238,7 @@ function openProject(p: any) {
   nav.push(pagePath(p));
 }
 function onProjectGo(p: any, a: any) {
+  if (a.go === "git") { gitProject.value = p; return; }
   if (!a.go.includes("|")) return;
   if (agg.on && p.__acc) focusAccount(String(p.__acc));
   nav.push(pagePath(p) + "?c=" + a.go.split("|")[0]);
@@ -269,6 +343,7 @@ function toggleClean(w: string) {
             ...(w.tail_consumers && w.tail_consumers.length ? [{ text: '实时日志', title: '字段 tail_consumers：这个 Worker 挂了 Workers Tail 消费者（实时日志流）' }] : []),
             ...(w.logpush ? [{ text: '日志推送', title: '字段 logpush：日志往外推给第三方（Logpush）' }] : []),
             ...(w.has_assets ? [{ text: '静态资源', title: '字段 has_assets：绑了 Workers Static Assets，除代码还托管文件（页面/图片这类）' }] : []),
+            ...workerRepoBadges(w),
             ...(w.placement?.mode === 'smart' ? [{ text: '智能放置', cls: 'roll', title: 'Smart Placement：CF 把执行点放到离你的数据源（D1/KV/R2/源站）最近的边缘，而不是只就近访问者' }] : []),
           ]"
           :actions="workerActionsFor(w)"
@@ -315,7 +390,9 @@ function toggleClean(w: string) {
 
       <div class="small muted" style="margin: 6px 0 10px">
         点项目行或下方任一动作进入项目详情：概览、部署历史（含回滚 / 重试 / 构建日志）、自定义域名、环境变量与构建配置。
+        「连接仓库」是把已有项目接到已有 Git 仓库，不新建项目；只有 APK 直连模式能发这条写请求。
       </div>
+      <div v-if="gitNote" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ gitNote }}</div>
 
       <div v-if="!hasProject && !pagesLoading && !pagesErr" class="small muted">
         {{ agg.on
@@ -332,13 +409,28 @@ function toggleClean(w: string) {
           :badges="[
             ...(p.__accName ? [{ text: p.__accName, title: '归属账号 ' + p.__acc }] : []),
             { text: pageDeployed(p) ? '已部署' : '无部署', cls: pageDeployed(p) ? 'live' : undefined },
+            ...pageGitBadges(p),
           ]"
-          :actions="projectActions"
+          :actions="projectActionsFor()"
           @open="openProject(p)"
           @go="(a) => onProjectGo(p, a)"
         />
       </div>
     </div>
+
+    <!-- 两个仓库对话框：Pages 是真写（PATCH 项目对象），Workers 只记本机 + 跳 dashboard -->
+    <GitConnectDialog
+      :project="gitProject ? String(gitProject.name) : null"
+      :existing="gitProject ? pageSource(gitProject) : null"
+      @close="gitProject = null"
+      @connected="onGitConnected"
+    />
+    <WorkerRepoDialog
+      :worker="repoWorker ? repoWorkerName : null"
+      :account="repoAccount"
+      @close="repoWorker = null"
+      @changed="repoTick++"
+    />
   </div>
 </template>
 

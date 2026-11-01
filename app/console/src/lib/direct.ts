@@ -762,7 +762,7 @@ const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
  * 校验在 api.ts 的 gwWrite() 里已经做过（validateDns / validatePurgeFiles），
  * 这里只负责按白名单发出去；写完由调用方 dropDirect 作废相关缓存。
  */
-export async function writeDirect(ctx: DirectCtx, method: "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<any> {
+export async function writeDirect(ctx: DirectCtx, method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<any> {
   const s = seg(path);
   // ---- 版本切换 / 回滚 / 灰度：两种形状都经 rin-server 实测（docs/14 §7）----
   // 直连没有网关挡着，网关 validateDeployBody 的那套校验在这里逐字复刻，一条都不能少。
@@ -1110,12 +1110,75 @@ export async function writeDirect(ctx: DirectCtx, method: "POST" | "PUT" | "DELE
     return r.data;
   }
 
+  // ---- Pages 连接 Git 仓库（2026-11-01）：客户端 PATCH /v1/pages/{p}/git →
+  // 上游 PATCH 项目对象 {source, build_config, production_branch}。
+  // ⚠️ 真实账号未实测：要连的那个 CF 账号必须先在 dashboard 装过 GitHub/GitLab 集成，
+  // 这里只复刻来源/分支的校验与组装，绝不夹带未列出的字段。
+  if (method === "PATCH" && s[0] === "pages" && s[2] === "git") {
+    const raw = (body ?? {}) as Record<string, unknown>;
+    const bad: (m: string) => never = (m) => { throw new DirectError("badQuery", 422, null, m); };
+    const unknown = Object.keys(raw).filter((k) => !["source", "build_config", "production_branch"].includes(k));
+    if (unknown.length) bad(`不支持的字段：${unknown.join(",")}。这条路由只认 source / build_config / production_branch`);
+
+    const srcRaw = raw.source;
+    if (!srcRaw || typeof srcRaw !== "object" || Array.isArray(srcRaw)) bad("source 必须是 {type, config} 对象");
+    const src = srcRaw as Record<string, unknown>;
+    const type = String(src.type ?? "");
+    if (type !== "github" && type !== "gitlab") bad('source.type 只能是 "github" 或 "gitlab"');
+    const scRaw = src.config;
+    if (!scRaw || typeof scRaw !== "object" || Array.isArray(scRaw)) bad("source.config 必须是对象");
+    const sc = scRaw as Record<string, unknown>;
+    const cfgExtra = Object.keys(sc).filter((k) => !["owner", "repo_name", "production_branch", "deployments_enabled"].includes(k));
+    if (cfgExtra.length) bad(`source.config 不支持的字段：${cfgExtra.join(",")}`);
+    const owner = String(sc.owner ?? "").trim();
+    const repo = String(sc.repo_name ?? "").trim();
+    const branch = String(sc.production_branch ?? "").trim();
+    const ownerRe = type === "github" ? /^[A-Za-z0-9][A-Za-z0-9-]{0,99}$/ : /^[A-Za-z0-9_][A-Za-z0-9._-]*(\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/;
+    if (!owner || !ownerRe.test(owner)) bad(`source.config.owner 写法不对：${owner || "空"}`);
+    if (!repo || !/^[A-Za-z0-9._-]{1,100}$/.test(repo)) bad(`source.config.repo_name 写法不对：${repo || "空"}`);
+    if (!branch || branch.length > 255 || /[\s~^:?*[\\]/.test(branch)) bad(`source.config.production_branch 写法不对：${branch || "空"}`);
+    if (sc.deployments_enabled !== undefined && sc.deployments_enabled !== true) bad("deployments_enabled 只允许 true（本版不提供「连上仓库但不构建」）");
+
+    let build_config: Record<string, string> | undefined;
+    if (raw.build_config !== undefined) {
+      const b = raw.build_config as Record<string, unknown>;
+      if (!b || typeof b !== "object" || Array.isArray(b)) bad("build_config 必须是对象");
+      const bExtra = Object.keys(b).filter((k) => !["build_command", "destination_dir", "root_dir"].includes(k));
+      if (bExtra.length) bad(`build_config 不支持的字段：${bExtra.join(",")}。只认 build_command / destination_dir / root_dir`);
+      build_config = {};
+      for (const k of ["build_command", "destination_dir", "root_dir"] as const) {
+        if (b[k] === undefined || b[k] === null) continue;
+        if (typeof b[k] !== "string") bad(`build_config.${k} 必须是字符串`);
+        const v = (b[k] as string).trim();
+        if (v.length > 255) bad(`build_config.${k} 超过 255 字符`);
+        if (v) build_config[k] = v;
+      }
+      if (!Object.keys(build_config).length) build_config = undefined;
+    }
+
+    if (raw.production_branch !== undefined && String(raw.production_branch).trim() !== branch) {
+      bad("顶层 production_branch 与 source.config.production_branch 必须是同一个分支（两处不一致的发出去只会被上游挑一个）");
+    }
+    const proj = s[1];
+    if (!proj) bad("缺少 Pages 项目名");
+
+    const r = await rest<any>(ctx.token, `${A(ctx.account)}/pages/projects/${enc(proj)}`, {
+      method: "PATCH",
+      body: {
+        source: { type, config: { owner, repo_name: repo, production_branch: branch, deployments_enabled: true } },
+        ...(build_config ? { build_config } : {}),
+        production_branch: branch,
+      },
+    }, false);
+    return r.data;
+  }
+
   // 段位（2026-10-19 修正，与 routeREST 同一处错位）：/v1/zones/{zone}/{action}[/id]
   // → s[1]=zone、s[2]=动作、s[3]=record id。旧代码取 s[2] 当 zone、s[3] 当动作，
   //   DNS 写四条在直连模式从上线起就没通过（tools/check-direct-parity.mjs 抓的第二个 off-by-one）。
   const zone = s[1];
   if (s[0] !== "zones" || !/^[0-9a-f]{32}$/i.test(zone)) {
-    throw new DirectError("badQuery", 422, null, "直连写侧只支持 /v1/zones/{32位id}/... 四条 DNS/缓存路由，以及 /v1/workers/{s}/deployments");
+    throw new DirectError("badQuery", 422, null, "直连写侧只支持 /v1/pages/{p}/git，以及 /v1/zones/{32位id}/... 四条 DNS/缓存路由、/v1/workers/{s}/deployments");
   }
   if (method === "POST" && s[2] === "dns_records") {
     const r = await rest<any>(ctx.token, `/zones/${enc(zone)}/dns_records`, { method: "POST", body }, false);

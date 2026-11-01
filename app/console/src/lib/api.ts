@@ -763,7 +763,7 @@ export const PURGE_LIMIT = MAX_PURGE_URLS;
 
 /** 回显给人看的东西：这就是将要真的发出去的东西，二者不是两套代码 */
 export interface WritePreview {
-  method: "POST" | "PUT" | "DELETE";
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
   path: string;
   body: unknown;
   title: string;
@@ -981,6 +981,91 @@ export function previewPageEnv(
   };
 }
 
+/* ---------- Pages 连接 Git 仓库（2026-11-01） ----------
+ * 上游是 PATCH 项目对象：source + build_config + production_branch（见 docs/03）。
+ * 这条写路由只给 APK 直连：网关白名单没放行，而且 Git 令牌本身也不该经过中间服务器。
+ */
+
+export type PageGitPlatform = "github" | "gitlab";
+
+export interface PageGitInput {
+  platform: PageGitPlatform;
+  owner: string;
+  repo: string;
+  productionBranch: string;
+  buildCommand?: string;
+  destinationDir?: string;
+  rootDir?: string;
+}
+
+/**
+ * 校验并组装上游请求体。owner / repo / 分支的非法字符在这里就拦住 ——
+ * 让人白填一次再被 CF 400，比直接说清哪一格写错差得多。
+ */
+export function pageGitBody(input: PageGitInput): Record<string, unknown> {
+  const platform = String(input?.platform ?? "");
+  if (platform !== "github" && platform !== "gitlab") bad("平台只能是 github 或 gitlab");
+  const owner = String(input?.owner ?? "").trim();
+  const repo = String(input?.repo ?? "").trim();
+  const branch = String(input?.productionBranch ?? "").trim();
+  // GitLab 的命名空间可能是 group/subgroup；GitHub 的 owner 不允许斜杠
+  const ownerRe = platform === "github" ? /^[A-Za-z0-9][A-Za-z0-9-]{0,99}$/ : /^[A-Za-z0-9_][A-Za-z0-9._-]*(\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/;
+  if (!owner) bad("仓库所有者（owner / 命名空间）不能为空");
+  if (!ownerRe.test(owner)) bad(`所有者写法不对：${owner}（GitHub 只允许字母数字与短横线；GitLab 可以是 group/subgroup）`);
+  if (!repo) bad("仓库名不能为空");
+  if (!/^[A-Za-z0-9._-]{1,100}$/.test(repo)) bad(`仓库名写法不对：${repo}（只允许字母数字点下划线短横线）`);
+  if (!branch) bad("生产分支不能为空");
+  if (branch.length > 255 || /[\s~^:?*[\\]/.test(branch)) bad(`生产分支写法不对：${branch}`);
+  const build: Record<string, string> = {};
+  const put = (k: "build_command" | "destination_dir" | "root_dir", v: unknown, label: string) => {
+    if (v === undefined || v === null || String(v).trim() === "") return;
+    const s = String(v).trim();
+    if (s.length > 255) bad(`${label}太长了（上限 255 字符）`);
+    build[k] = s;
+  };
+  put("build_command", input.buildCommand, "构建命令");
+  put("destination_dir", input.destinationDir, "输出目录");
+  put("root_dir", input.rootDir, "根目录");
+  return {
+    source: {
+      type: platform,
+      config: {
+        owner,
+        repo_name: repo,
+        production_branch: branch,
+        deployments_enabled: true,
+      },
+    },
+    ...(Object.keys(build).length ? { build_config: build } : {}),
+    production_branch: branch,
+  };
+}
+
+/** 连接前的回显：仓库、分支、构建三格，以及两个前置条件（Git App 已装、项目会转成 Git 构建） */
+export function previewPageGit(project: string, input: PageGitInput): WritePreview {
+  const body = pageGitBody(input);
+  const build = body.build_config as Record<string, string> | undefined;
+  const who = input.platform === "github" ? "GitHub" : "GitLab";
+  return {
+    method: "PATCH",
+    path: `/v1/pages/${encodeURIComponent(project)}/git`,
+    body,
+    title: `把「${project}」连接到 ${who} 仓库 ${input.owner}/${input.repo}`,
+    lines: [
+      { k: "项目", v: project },
+      { k: "平台", v: who },
+      { k: "仓库", v: `${input.owner}/${input.repo}` },
+      { k: "生产分支", v: input.productionBranch },
+      { k: "构建命令", v: build?.build_command || "未填（沿用现有构建配置）" },
+      { k: "输出目录", v: build?.destination_dir || "未填" },
+      { k: "根目录", v: build?.root_dir || "未填（仓库根）" },
+      { k: "前置条件", v: `这个 Cloudflare 账号要已装过 ${who} 集成（只能由账号管理员在 dashboard 里授权一次，API 做不到）` },
+      { k: "影响", v: "项目从直传改为 Git 构建：之后推到生产分支会触发构建；旧部署记录仍可回滚" },
+    ],
+    danger: "normal",
+  };
+}
+
 /** 脚本级 workers.dev 开关：上游 POST 收两个布尔（缺一个会被当成 reset） */
 export function previewWorkerSubdomain(s: string, enabled: boolean, previews: boolean): WritePreview {
   const svc = scriptNameFor(s);
@@ -1070,6 +1155,36 @@ export async function gwWrite<T = any>(method: WritePreview["method"], path: str
   if (!json) throw new GwError("unknown", res.status, null, "网关返回了非 JSON 内容");
   dropAfterWrite(path);
   return (json?.result ?? json) as T;
+}
+
+/**
+ * Pages 连接 Git 仓库（2026-11-01）。**只走 APK 直连**：
+ *  - 网关没有这条写路由（这一版刻意不放行，避免把 Git 凭据链路塞进中间服务器）；
+ *  - 浏览器模式下 CF 无 CORS，本来也发不出去。
+ * 所以网页模式直接按 writesDisabled 报错（界面同时把入口灰掉并写明原因），
+ * 不做"假装成功"的本地记录 —— 那会让人以为项目已经连上了。
+ */
+export async function pageConnectGit(project: string, input: PageGitInput): Promise<any> {
+  if (!isNativeApp()) {
+    throw new GwError(
+      "writesDisabled",
+      403,
+      null,
+      "连接 Git 仓库只能在 APK 直连模式做：浏览器里 api.cloudflare.com 没有 CORS，网关这一版也没放行这条写路由。",
+    );
+  }
+  if (!writesOptIn()) throw new GwError("writesDisabled", 403, null, "本机写开关没打开，这条请求没有发出");
+  const cfg = loadConfig();
+  const ctx = await directCtx(cfg, false);
+  if (!ctx) throw noDirectCtxError(cfg);
+  const path = "/v1/pages/" + encodeURIComponent(project) + "/git";
+  try {
+    const data = await writeDirect(ctx, "PATCH", path, pageGitBody(input));
+    dropAfterWrite(path); // 项目详情的 source/build_config 立刻要重取，不能拿 5 分钟前的旧项目说"还是直传"
+    return data;
+  } catch (e) {
+    throw asGwError(e);
+  }
 }
 
 /* ============================================================================

@@ -5,8 +5,11 @@ const V = JSON.parse(readFileSync("docs/evidence/api-verification.json", "utf8")
 const rows = Array.isArray(V) ? V : (V.rows || V.results || []);
 
 // 真实 ID 折成占位符：表格更好读，也不会把账号结构写进文档
+// 注：证据文件发布前被 tools/sanitize-for-publish.mjs 把真实账号 id 换成了「«ACCOUNT_ID»」，
+// 这里必须把它也折回 {a} —— 否则一重跑生成器，40 行路径全变成「/accounts/«ACCOUNT_ID»/…」。
 function norm(p) {
   return String(p || "")
+    .replace(/«ACCOUNT_ID»/g, "{a}")
     .replace(/\/accounts\/[0-9a-f]{32}/g, "/accounts/{a}")
     .replace(/\/zones\/[0-9a-f]{32}/g, "/zones/{z}")
     .replace(/\/database\/[0-9a-f-]{36}/g, "/database/{uuid}")
@@ -110,6 +113,17 @@ md += probeTable("docs/evidence/probe6.json",
 md += probeTable("docs/evidence/rulesets-phases.json",
   "Rulesets 阶段入口（`tools/probe-rulesets-phases.mjs`）",
   "`404 code 10003` = 该阶段没配过规则（**正常空态**）；`400 unknown phase` = 阶段名对本套餐不成立（该错误对象没有 code）。结论与用法见 `04` §8。");
+
+// Git 仓库连接（2026-11-01）：这一批**没有实测证据**，所以不混进上面的实测表，
+// 单独成节并逐条写明依据 —— 免得有人把「按官方规格拼的请求」当成「已经验过」。
+md += "## Git 仓库连接（2026-11-01 新增，未实测）\n\n"
+  + "> 这一节不是证据文件生成的：我们**没有**可用的 GitHub/GitLab 凭据，也没在真账号上装过 CF 的 Git App，\n"
+  + "> 所以只锁「发出去的请求形状」，真实 PATCH 留给用户真机验收。写侧仍走本机写开关 + 预览确认两道闸门。\n\n"
+  + "| 动作 | 请求 | 状态 | 结论与边界 |\n|---|---|---|---|\n"
+  + "| Pages 连接已有仓库 | `PATCH /accounts/{a}/pages/projects/{p}`（body: `source` / `build_config` / `production_branch`） | 🟡 形状来自官方规格 | 只能连**已有**项目到**已有**仓库；账号必须先在 dashboard 装过 GitHub/GitLab 集成，OAuth 授权无法用 API 完成；仅 APK 直连可发（网页模式整表单灰掉） |\n"
+  + "| 列我的仓库 · GitHub | `GET https://api.github.com/user/repos` | 🟡 仅 APK | 用用户自备 PAT（classic `repo` 或细粒度 Metadata/Contents 读）；浏览器无 CORS，网页模式不提供 |\n"
+  + "| 列我的仓库 · GitLab | `GET https://gitlab.com/api/v4/projects?membership=true` | 🟡 仅 APK | 用 `read_api` 范围的 PAT；同样无 CORS |\n"
+  + "| Workers 连接构建仓库 | —（无官方 API） | 🚫 做不了 | Workers Builds 只能在 dashboard 操作；App 仅在本机记录 owner/repo/分支并提供 dashboard 跳转，界面明写「仅记录 · 不构建」 |\n\n";
 
 md += "## 本阶段刻意没发请求的写操作（需授权后逐项补测）\n\n"
   + "| 动作 | 请求 | 前置条件 |\n|---|---|---|\n"
