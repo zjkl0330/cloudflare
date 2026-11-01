@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Browser } from "@capacitor/browser";
 import { useRouter } from "vue-router";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { reloadTick, requestReload } from "../lib/bus";
@@ -15,6 +16,7 @@ import {
   dropMem,
   forceFreshWindow,
   GwError,
+  isNativeApp,
   previewDnsDelete,
   previewZoneRoute,
   writesOptIn,
@@ -102,6 +104,29 @@ function pickAggZone(acc: string, id: string) {
 const editorOpen = ref(false);
 const purgeOpen = ref(false);
 const wizardOpen = ref(false);
+
+/* ---------- 测速（itdog）：App 只负责拼参数跳转，节点与结果都在 itdog 那边 ---------- */
+/** 输入框值：跟着站点走，用户改过就不再跟着变（= 旧值不再等于站点名） */
+const speedTarget = ref("");
+watch(currentZoneName, (v, old) => {
+  if (!speedTarget.value || speedTarget.value === old) speedTarget.value = v;
+}, { immediate: true });
+/** 允许直接粘整条 URL，这里只取主机部分；itdog 的 ping 页只认主机/IP */
+function speedHost(): string {
+  return speedTarget.value.trim()
+    .replace(/^[a-z]+:\/\//i, "")
+    .split(/[/?#]/)[0]
+    .trim();
+}
+async function openSpeedTest() {
+  const host = speedHost();
+  if (!host) return;
+  const url = `https://www.itdog.cn/ping/${encodeURIComponent(host)}/?auto_submit=1`;
+  // 网页模式开新标签；APK 里 window.open 会被 WebView 吞掉，用 Capacitor Browser 打开系统浏览器
+  if (!isNativeApp()) { window.open(url, "_blank", "noopener"); return; }
+  try { await Browser.open({ url }); }
+  catch { window.open(url, "_blank", "noopener"); }
+}
 /** 编辑器的当前对象：record=编辑、preset=向导带过来的新增预填、都空=空白新增 */
 const editorRecord = ref<Record<string, any> | null>(null);
 const editorPreset = ref<{ type?: string; name?: string } | null>(null);
@@ -758,10 +783,10 @@ async function confirmSheet() {
       <p class="small muted" style="margin-top: 8px" v-if="!writesOn && !agg.on">标题行右侧的本机写开关没打开，路由的增删改按钮是灰的。</p>
     </div>
 
-    <!-- 运维工具（折叠）：清缓存 + DNS 配置向导。两个都是低频操作，不该占首屏。
-         两者都绑"当前站点"，合并视图没有当前站点，整块收起。 -->
+    <!-- 运维工具（折叠）：清缓存 + 配置向导 + 测速。都是低频操作，不该占首屏。
+         前两块绑"当前站点"，合并视图没有当前站点，整块收起（测速也一并不显示）。 -->
     <details class="grp" v-if="!agg.on">
-      <summary>运维工具<span class="gs">清缓存 · 配置向导</span></summary>
+      <summary>运维工具<span class="gs">清缓存 · 配置向导 · 测速</span></summary>
 
       <div class="card" v-if="zoneName">
         <div class="hd">
@@ -781,6 +806,19 @@ async function confirmSheet() {
         </div>
         <DnsSetupWizard v-if="wizardOpen" :domains="domains.data || []" :zones="zones.data || []" @suggest="onWizardSuggest" />
         <div v-else class="small muted">给自定义域名验证提示该填什么记录；判定规则是本控制台自研，界面上会写清。</div>
+      </div>
+
+      <div class="card">
+        <div class="hd">
+          <h3>测速（itdog）</h3>
+        </div>
+        <div class="gen">
+          <input v-model="speedTarget" class="field" style="max-width: 260px" placeholder="example.com 或 IP" spellcheck="false" autocomplete="off" />
+          <button class="primary" :disabled="!speedHost()" @click="openSpeedTest">打开 itdog 测速</button>
+        </div>
+        <div class="small muted" style="margin-top: 6px">
+          默认填当前站点，可改成任意域名 / IP。打开后 itdog 自动开始 ping，节点与线路由 itdog 决定，结果只在那个页面里，本机不回显。
+        </div>
       </div>
     </details>
 
