@@ -160,6 +160,11 @@ export const WRITE_ROUTES = [
   { method: "PUT", path: "/v1/pages/:p/env_vars" },
   // Workers 脚本级 workers.dev 开关：上游 POST {enabled, previews_enabled} 两个布尔
   { method: "PUT", path: "/v1/workers/:s/subdomain" },
+  // Workers Builds（2026-11-02，按官方规格拼，未实测）：
+  //   POST 客户端一条 = 上游两次调用（PUT builds/repos/connections → POST builds/triggers），
+  //   DELETE 只删触发器，不动仓库连接与已部署版本。
+  { method: "POST", path: "/v1/workers/:s/builds" },
+  { method: "DELETE", path: "/v1/builds/:id" },
 ] as const;
 
 /** 写端点表：全部走 cf.rest，不进缓存层（cf.ts 的 isReadCall 只认 GET / graphql / sql） */
@@ -291,6 +296,19 @@ export const writes = {
    */
   workerSubdomainPut: (cf: CfClient, env: Env, s: string, body: { enabled: boolean; previews_enabled: boolean }) =>
     cf.rest(`/accounts/${ACC(env)}/workers/scripts/${encodeURIComponent(s)}/subdomain`, { method: "POST", body }),
+  /**
+   * Workers Builds 第一步：建立（或复用）仓库连接。上游 PUT …/builds/repos/connections，
+   * body `{provider_type, provider_account_id, provider_account_name, repo_id, repo_name}`
+   * → `{repo_connection_uuid}`。同一个仓库重复 PUT 是幂等的（按官方语义），所以不做本地去重。
+   */
+  buildsConnectionPut: (cf: CfClient, env: Env, body: BuildConnectionBody) =>
+    cf.rest(`/accounts/${ACC(env)}/builds/repos/connections`, { method: "PUT", body }),
+  /** Workers Builds 第二步：用上一步拿到的 repo_connection_uuid 建触发器 */
+  buildsTriggerCreate: (cf: CfClient, env: Env, body: BuildTriggerBody) =>
+    cf.rest(`/accounts/${ACC(env)}/builds/triggers`, { method: "POST", body }),
+  /** 断开触发器：只删触发器（仓库连接与已部署版本保留） */
+  buildsTriggerDelete: (cf: CfClient, env: Env, uuid: string) =>
+    cf.rest(`/accounts/${ACC(env)}/builds/triggers/${encodeURIComponent(uuid)}`, { method: "DELETE" }),
 };
 
 /* ---------- 写侧校验（第三道闸门） ----------
@@ -782,6 +800,138 @@ export function validateWorkerSubdomainBody(raw: Record<string, unknown>): { ena
   return { enabled: raw.enabled as boolean, previews_enabled: raw.previews_enabled as boolean };
 }
 
+/* ---------- Workers Builds（2026-11-02，按官方规格拼，未实测） ----------
+ * 客户端只发一条 POST …/builds，由网关拆成 connection + trigger 两次上游调用。
+ * 规则与 console/src/lib/api.ts 的 workerBuildBody、direct.ts 的 validateBuildClientBody 同源，
+ * 但这里更严（前端那份可以被 curl 绕过）：字段名、数字 id、分支过滤、path_* 固定空数组。
+ */
+const BUILD_PROVIDERS = ["github", "gitlab"] as const;
+type BuildProvider = (typeof BUILD_PROVIDERS)[number];
+const BUILD_NUMERIC_ID = /^\d{1,20}$/;
+const BUILD_OWNER_RE: Record<BuildProvider, RegExp> = {
+  github: /^[A-Za-z0-9][A-Za-z0-9-]{0,99}$/,
+  gitlab: /^[A-Za-z0-9_][A-Za-z0-9._-]*(\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/,
+};
+const BUILD_REPO_NAME_RE = /^[A-Za-z0-9._-]{1,100}$/;
+const BUILD_TOKEN_RE = /^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface BuildConnectionBody {
+  provider_type: BuildProvider;
+  provider_account_id: number;
+  provider_account_name: string;
+  repo_id: number;
+  repo_name: string;
+}
+
+export interface BuildTriggerBody {
+  external_script_id: string;
+  repo_connection_uuid: string;
+  trigger_name: string;
+  build_command: string;
+  deploy_command: string;
+  build_token_uuid: string;
+  branch_includes: string[];
+  branch_excludes: string[];
+  path_includes: string[];
+  path_excludes: string[];
+  root_directory: string;
+  build_caching_enabled: boolean;
+}
+
+export interface WorkerBuildDraft {
+  connection: BuildConnectionBody;
+  trigger: Omit<BuildTriggerBody, "external_script_id" | "repo_connection_uuid">;
+}
+
+const BUILD_ALLOWED = [
+  "provider_type", "provider_account_id", "provider_account_name", "repo_id", "repo_name",
+  "trigger_name", "build_command", "deploy_command", "build_token_uuid",
+  "branch_includes", "branch_excludes", "path_includes", "path_excludes",
+  "root_directory", "build_caching_enabled",
+];
+
+function buildBranchList(v: unknown, label: string): string[] {
+  if (!Array.isArray(v)) bad(`${label} 必须是数组（空数组 = 不过滤）`);
+  const list = (v as unknown[]).map((x) => String(x ?? "").trim()).filter(Boolean);
+  if (list.length > 10) bad(`${label}最多 10 条（现在是 ${list.length} 条）`);
+  for (const b of list) {
+    if (b.length > 255) bad(`${label}里有超过 255 字符的分支`);
+    if (/[\s~^:?[\\]/.test(b)) bad(`${label}里有非法分支名：${b}`);
+  }
+  return list;
+}
+
+/** 本版只放行空数组：路径过滤没实测过，宁可做不了也不猜上游形状 */
+function buildEmptyPathList(v: unknown, label: string): string[] {
+  if (!Array.isArray(v)) bad(`${label} 必须是数组（本版固定传空数组）`);
+  if ((v as unknown[]).length) bad(`${label} 本版只支持空数组（没放行路径过滤）`);
+  return [];
+}
+
+export function validateWorkerBuildBody(raw: Record<string, unknown>): WorkerBuildDraft {
+  const unknown = Object.keys(raw).filter((k) => !BUILD_ALLOWED.includes(k));
+  if (unknown.length) bad(`不支持的字段：${unknown.join(",")}。这条路由只认 ${BUILD_ALLOWED.join(" / ")}`);
+
+  const provider_type = String(raw.provider_type ?? "");
+  if (!BUILD_PROVIDERS.includes(provider_type as BuildProvider)) bad('provider_type 只能是 "github" 或 "gitlab"');
+  const p = provider_type as BuildProvider;
+  const numId = (v: unknown, label: string): number => {
+    const s = String(v ?? "").trim();
+    if (!BUILD_NUMERIC_ID.test(s)) bad(`${label} 必须是数字 id（现在是 ${s || "空"}）`);
+    return Number(s);
+  };
+  const provider_account_id = numId(raw.provider_account_id, "provider_account_id");
+  const repo_id = numId(raw.repo_id, "repo_id");
+
+  const repo_name = String(raw.repo_name ?? "").trim();
+  if (!repo_name.includes("/")) bad("repo_name 要写成 owner/repo（Workers Builds 需要 owner 才能定位连接）");
+  const owner = repo_name.slice(0, repo_name.lastIndexOf("/"));
+  const repo = repo_name.slice(repo_name.lastIndexOf("/") + 1);
+  if (!BUILD_OWNER_RE[p].test(owner)) bad(`repo_name 的 owner 写法不对：${owner || "空"}`);
+  if (!BUILD_REPO_NAME_RE.test(repo)) bad(`repo_name 的仓库名写法不对：${repo || "空"}`);
+
+  const provider_account_name = String(raw.provider_account_name ?? "").trim() || owner;
+  if (!BUILD_OWNER_RE[p].test(provider_account_name)) bad(`provider_account_name 写法不对：${provider_account_name}`);
+
+  const trigger_name = String(raw.trigger_name ?? "").trim() || repo_name;
+  if (trigger_name.length > 120) bad("trigger_name 超过 120 字符");
+
+  const cmd = (v: unknown, label: string): string => {
+    const s = String(v ?? "").trim();
+    if (!s) bad(`${label}不能为空`);
+    if (s.length > 255) bad(`${label}超过 255 字符`);
+    return s;
+  };
+  const build_command = cmd(raw.build_command, "构建命令");
+  const deploy_command = cmd(raw.deploy_command, "部署命令");
+
+  const build_token_uuid = String(raw.build_token_uuid ?? "").trim();
+  if (!BUILD_TOKEN_RE.test(build_token_uuid)) bad("build_token_uuid 得是 32 位 hex 或 36 位 UUID（先在 dashboard 建一个，再回来选）");
+
+  const root_directory = String(raw.root_directory ?? "").trim();
+  if (root_directory.length > 255) bad("root_directory 超过 255 字符");
+
+  if (raw.build_caching_enabled !== undefined && typeof raw.build_caching_enabled !== "boolean") {
+    bad("build_caching_enabled 必须是布尔值");
+  }
+
+  return {
+    connection: { provider_type: p, provider_account_id, provider_account_name, repo_id, repo_name },
+    trigger: {
+      trigger_name,
+      build_command,
+      deploy_command,
+      build_token_uuid,
+      branch_includes: buildBranchList(raw.branch_includes, "branch_includes"),
+      branch_excludes: buildBranchList(raw.branch_excludes, "branch_excludes"),
+      path_includes: buildEmptyPathList(raw.path_includes, "path_includes"),
+      path_excludes: buildEmptyPathList(raw.path_excludes, "path_excludes"),
+      root_directory,
+      build_caching_enabled: raw.build_caching_enabled === true,
+    },
+  };
+}
+
 /**
  * 通用逐页拉取：CF 的列表端点都有每页上限（/accounts 默认 20、/zones 50、dns_records 100…），
  * 单页取法在条数超限时**静默截断**，界面上毫无提示。这里按每页上限逐页拿满（在哪页断就停），
@@ -882,6 +1032,16 @@ export const reads = {
     cf.rest(`/accounts/${ACC(env)}/workers/scripts/${encodeURIComponent(s)}/deployments?environment=production&per_page=50`, { unwrap: "list" }),
   workerSecrets: (cf: CfClient, env: Env, s: string) => cf.rest(`/accounts/${ACC(env)}/workers/scripts/${encodeURIComponent(s)}/secrets`),
   workerCrons: (cf: CfClient, env: Env, s: string) => cf.rest(`/accounts/${ACC(env)}/workers/scripts/${encodeURIComponent(s)}/schedules`),
+  /**
+   * Worker 脚本本体。Builds 的 `external_script_id` 要的是脚本的 **tag**（不是脚本名），
+   * 所以读触发器前先拿这一条取 tag；tag 缺失就报错，不拿脚本名硬拼。
+   */
+  workerScript: (cf: CfClient, env: Env, s: string) => cf.rest(`/accounts/${ACC(env)}/workers/scripts/${encodeURIComponent(s)}`),
+  /** Worker 的构建触发器列表（2026-11-02，按官方规格拼，未实测） */
+  workerBuildTriggers: (cf: CfClient, env: Env, tag: string) =>
+    cf.rest(`/accounts/${ACC(env)}/builds/workers/${encodeURIComponent(tag)}/triggers`, { unwrap: "list" }),
+  /** Workers Builds 的 build token 列表：建触发器时必填其中一个 uuid（得先在 dashboard 建） */
+  buildsTokens: (cf: CfClient, env: Env) => cf.rest(`/accounts/${ACC(env)}/builds/tokens`, { unwrap: "list" }),
   workerDomains: (cf: CfClient, env: Env) => pagedList(cf, `/accounts/${ACC(env)}/workers/domains`, 100),
   pagesProjects: (cf: CfClient, env: Env) => pagesList(cf, `/accounts/${ACC(env)}/pages/projects`),
   pagesDeployments: (cf: CfClient, env: Env, p: string) =>

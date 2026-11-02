@@ -539,6 +539,15 @@ export const api = {
   subscriptions: () => gw<R<Subscription[]>>("/v1/subscriptions"),
   workerSecrets: (s: string) => gw<R<any>>("/v1/workers/" + encodeURIComponent(s) + "/secrets"),
   workerCrons: (s: string) => gw<R<any>>("/v1/workers/" + encodeURIComponent(s) + "/crons"),
+  /** Workers Builds：真实触发器列表（按脚本 tag 查，网关/直连都在内部解析 tag） */
+  workerBuilds: (s: string) => gw<R<WorkerBuildsResult>>("/v1/workers/" + encodeURIComponent(s) + "/builds"),
+  /** 账号级 build token 列表；上游没有创建端点，缺 token 只能去 dashboard 建 */
+  buildsTokens: () => gw<R<BuildToken[]>>("/v1/builds/tokens"),
+  /** 连接构建仓库：客户端 POST 一条，两层各自拆成 connection + trigger 两次上游调用 */
+  workerBuildConnect: (s: string, input: WorkerBuildInput) =>
+    gwWrite<any>("POST", "/v1/workers/" + encodeURIComponent(s) + "/builds", workerBuildBody(input)),
+  /** 断开触发器（只删 trigger，不动仓库连接与已有部署） */
+  workerBuildDelete: (uuid: string) => gwWrite<any>("DELETE", "/v1/builds/" + encodeURIComponent(uuid)),
 
   domains: () => gw<R<any[]>>("/v1/domains"),
   dnsRecords: (zone: string) => gw<R<any[]> & { total?: number }>("/v1/zones/" + encodeURIComponent(zone) + "/dns_records"),
@@ -1066,6 +1075,183 @@ export function previewPageGit(project: string, input: PageGitInput): WritePrevi
   };
 }
 
+/* ---------- Workers Builds 连接 Git 仓库（2026-11-02） ----------
+ * 上游是**两次调用**：PUT /builds/repos/connections 建仓库连接 → POST /builds/triggers
+ * 建构建触发器。客户端只发一条 POST /v1/workers/{s}/builds，由两层各自拆成这两步
+ * （direct.ts 与网关 catalog.writes 同口径）。
+ *
+ * ⚠️ 这一组端点来自官方 API 规格，但**没有真实账号实测**（需要 user-scoped 令牌 +
+ * 账号已装过 Cloudflare GitHub App）。所以界面上必须写清"会真的触发构建"，
+ * 并在错误原样上屏，不把 403 说成"连接成功"。
+ */
+
+export interface WorkerBuildTrigger {
+  trigger_uuid?: string;
+  external_script_id?: string;
+  repo_connection_uuid?: string;
+  trigger_name?: string;
+  build_command?: string;
+  deploy_command?: string;
+  root_directory?: string;
+  branch_includes?: string[];
+  branch_excludes?: string[];
+  repo_name?: string;
+  provider_type?: string;
+  [k: string]: unknown;
+}
+
+export interface WorkerBuildsResult {
+  /** 真实 trigger 列表；拿不到时上层会抛错，不会返回空数组冒充"没连" */
+  triggers: WorkerBuildTrigger[];
+  /** Worker 的 tag（external_script_id）；上游这一层用它定位 */
+  scriptTag?: string;
+}
+
+export interface BuildToken {
+  build_token_uuid: string;
+  build_token_name?: string;
+}
+
+export interface WorkerBuildInput {
+  provider: "github" | "gitlab";
+  /** GitHub owner.id / GitLab namespace.id（数字，字符串传，发出去转 Number） */
+  providerAccountId: string;
+  /** 拥有者显示名（GitHub owner.login / GitLab namespace.full_path） */
+  providerAccountName: string;
+  /** 仓库数字 id（GitHub repo.id / GitLab project.id） */
+  repoId: string;
+  /** owner/repo（与 dashboard 展示一致） */
+  repoName: string;
+  /** 触发分支（逗号/空格分隔，留空 = 不过滤） */
+  branchIncludes: string;
+  /** 排除分支（同上） */
+  branchExcludes: string;
+  buildCommand: string;
+  deployCommand: string;
+  /** 仓库子目录，留空 = 仓库根 */
+  rootDirectory: string;
+  /** 必填：要拿 dashboard 里已有的 build token（GET /v1/builds/tokens） */
+  buildTokenUuid: string;
+  triggerName?: string;
+  buildCachingEnabled?: boolean;
+}
+
+const NUMERIC_ID = /^\d{1,20}$/;
+const OWNER_RE = { github: /^[A-Za-z0-9][A-Za-z0-9-]{0,99}$/, gitlab: /^[A-Za-z0-9_][A-Za-z0-9._-]*(\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/ };
+const REPO_NAME_RE = /^[A-Za-z0-9._-]{1,100}$/;
+
+function numericId(v: unknown, label: string): number {
+  const s = String(v ?? "").trim();
+  if (!NUMERIC_ID.test(s)) bad(`${label} 必须是数字 id（现在是 ${s || "空"}）`);
+  return Number(s);
+}
+
+/** 分支过滤：逗号/空格/分号分隔；空串 = 不过滤。允许 * 通配，但不允许空白与这些 ref 非法字符 */
+function branchList(v: unknown, label: string): string[] {
+  const list = String(v ?? "").split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+  if (list.length > 10) bad(`${label}最多 10 条（现在是 ${list.length} 条）`);
+  for (const b of list) {
+    if (b.length > 255) bad(`${label}里有超过 255 字符的分支：${b.slice(0, 40)}…`);
+    if (/[\s~^:?[\\]/.test(b)) bad(`${label}里有非法分支名：${b}`);
+  }
+  return list;
+}
+
+/**
+ * 校验并组装**客户端请求体**（字段名贴近上游，方便回显核对）。
+ * 真正发上游时 direct/网关会把它拆成 connection + trigger 两段。
+ */
+export function workerBuildBody(input: WorkerBuildInput): Record<string, unknown> {
+  const provider = String(input?.provider ?? "");
+  if (provider !== "github" && provider !== "gitlab") bad("平台只能是 github 或 gitlab");
+  const full = String(input?.repoName ?? "").trim();
+  if (!full.includes("/")) bad("仓库要写成 owner/repo（Workers Builds 需要 owner 才能定位连接）");
+  const owner = full.slice(0, full.lastIndexOf("/"));
+  const repo = full.slice(full.lastIndexOf("/") + 1);
+  if (!OWNER_RE[provider].test(owner)) bad(`owner 写法不对：${owner}（GitHub 只允许字母数字与短横线；GitLab 可以是 group/subgroup）`);
+  if (!REPO_NAME_RE.test(repo)) bad(`仓库名写法不对：${repo}`);
+  const providerAccountName = String(input.providerAccountName ?? "").trim() || owner;
+  if (!OWNER_RE[provider].test(providerAccountName)) bad(`providerAccountName 写法不对：${providerAccountName}`);
+  const buildCommand = String(input.buildCommand ?? "").trim();
+  if (!buildCommand) bad("构建命令不能为空（例：npm run build）");
+  if (buildCommand.length > 255) bad("构建命令超过 255 字符");
+  const deployCommand = String(input.deployCommand ?? "").trim();
+  if (!deployCommand) bad("部署命令不能为空（例：npx wrangler deploy）");
+  if (deployCommand.length > 255) bad("部署命令超过 255 字符");
+  const rootDirectory = String(input.rootDirectory ?? "").trim();
+  if (rootDirectory.length > 255) bad("根目录超过 255 字符");
+  const token = String(input.buildTokenUuid ?? "").trim();
+  if (!/^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+    bad("build token 必须是 32 位 hex 或 36 位 UUID（先在 dashboard 建一个，再回来选）");
+  }
+  const triggerName = String(input.triggerName ?? "").trim() || full;
+  if (triggerName.length > 120) bad("触发器名称超过 120 字符");
+
+  return {
+    provider_type: provider,
+    provider_account_id: numericId(input.providerAccountId, "providerAccountId"),
+    provider_account_name: providerAccountName,
+    repo_id: numericId(input.repoId, "repoId"),
+    repo_name: full,
+    trigger_name: triggerName,
+    build_command: buildCommand,
+    deploy_command: deployCommand,
+    build_token_uuid: token,
+    branch_includes: branchList(input.branchIncludes, "触发分支"),
+    branch_excludes: branchList(input.branchExcludes, "排除分支"),
+    path_includes: [],
+    path_excludes: [],
+    root_directory: rootDirectory,
+    build_caching_enabled: input.buildCachingEnabled === true,
+  };
+}
+
+/** 连接前的回显：仓库、分支过滤、命令与 build token，以及"会真的触发构建"这件事 */
+export function previewWorkerBuild(worker: string, input: WorkerBuildInput): WritePreview {
+  const body = workerBuildBody(input);
+  const who = input.provider === "github" ? "GitHub" : "GitLab";
+  return {
+    method: "POST",
+    path: `/v1/workers/${encodeURIComponent(worker)}/builds`,
+    body,
+    title: `把 ${worker} 连接到 ${who} 仓库 ${input.repoName}`,
+    lines: [
+      { k: "Worker", v: worker },
+      { k: "平台", v: who },
+      { k: "仓库", v: input.repoName },
+      { k: "触发分支", v: (body.branch_includes as string[]).join(", ") || "不限（任何分支推送都构建）" },
+      { k: "排除分支", v: (body.branch_excludes as string[]).join(", ") || "无" },
+      { k: "构建命令", v: input.buildCommand },
+      { k: "部署命令", v: input.deployCommand },
+      { k: "根目录", v: input.rootDirectory || "仓库根" },
+      { k: "上游形状", v: "两次调用：PUT builds/repos/connections（用 repo_id）→ POST builds/triggers（用返回的 repo_connection_uuid）" },
+      { k: "前置条件", v: "令牌必须是 user-scoped 且带 Workers Builds Configuration: Edit；账号必须已装过 Cloudflare GitHub App（OAuth 授权只能在 dashboard 做一次）" },
+      { k: "影响", v: "连接后推送到触发分支会真的触发构建并部署；删除触发器会停止后续构建（不影响已有部署）" },
+    ],
+    danger: "normal",
+  };
+}
+
+/** 断开触发器：只删触发器，不动仓库连接，也不回滚已部署的版本 */
+export function previewWorkerBuildDelete(worker: string, t: WorkerBuildTrigger): WritePreview {
+  const id = String(t?.trigger_uuid ?? "").trim();
+  if (!id) bad("这条触发器没有 trigger_uuid，不删");
+  return {
+    method: "DELETE",
+    path: `/v1/builds/${encodeURIComponent(id)}`,
+    body: undefined,
+    title: `断开 ${worker} 的构建触发器 ${String(t?.trigger_name ?? id)}`,
+    lines: [
+      { k: "要删除的记录", v: String(t?.trigger_name ?? id) },
+      { k: "Worker", v: worker },
+      { k: "触发器", v: String(t?.trigger_name ?? "—") },
+      { k: "分支过滤", v: (t?.branch_includes ?? []).join(", ") || "不限" },
+      { k: "影响", v: "之后推送不再触发这个 Worker 的构建；已部署的版本与部署记录都保留" },
+    ],
+    danger: "irreversible",
+  };
+}
+
 /** 脚本级 workers.dev 开关：上游 POST 收两个布尔（缺一个会被当成 reset） */
 export function previewWorkerSubdomain(s: string, enabled: boolean, previews: boolean): WritePreview {
   const svc = scriptNameFor(s);
@@ -1103,6 +1289,12 @@ function dropAfterWrite(path: string): void {
   } else if (kind === "pages") {
     dropMem("/v1/pages/" + id);
     dropDirect("/pages/projects/" + id);
+  } else if (kind === "builds") {
+    // 触发器删除/改动后，Worker 的 builds 列表与 token 列表都可能变；两条都很轻，整段作废最稳
+    dropMem("/v1/workers/");
+    dropMem("/v1/builds");
+    dropDirect("/workers/");
+    dropDirect("/builds");
   }
 }
 

@@ -43,6 +43,16 @@ globalThis.fetch = async (url, init = {}) => {
   if (u.includes("/observability/usage")) {
     return mkJson(200, { success: true, result: { events: 1, breakdown: [] } });
   }
+  // Workers Builds：脚本本体要回 tag（external_script_id 用它，不是脚本名）
+  if (u.endsWith("/workers/scripts/hello")) {
+    return mkJson(200, { success: true, result: { tag: "TAG-1" } });
+  }
+  if (u.includes("/builds/repos/connections") && init.method === "PUT") {
+    return mkJson(200, { success: true, result: { repo_connection_uuid: "C".repeat(32) } });
+  }
+  if (u.includes("/builds/triggers") && init.method === "POST") {
+    return mkJson(200, { success: true, result: { trigger_uuid: "T".repeat(32), trigger_name: "t" } });
+  }
   if (init.method === "POST") {
     return mkJson(200, { success: true, result: { id: "deploy-1" } });
   }
@@ -83,6 +93,28 @@ async function runWrite(method, path, body) {
   captured = [];
   dropDirect("/");
   await writeDirect(CTX, method, path, body);
+}
+
+/** 负例：必须被客户端校验拦下，且**一次上游都不打**（校验排在出网之前） */
+async function expectReject(label, fn) {
+  captured = [];
+  dropDirect("/");
+  let rejected = false;
+  try {
+    await fn();
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) {
+    console.error(`❌ ${label} —— 应被拒绝但没有`);
+    fail = true;
+  } else if (captured.length) {
+    console.error(`❌ ${label} —— 校验失败却仍出网 ${captured.length} 次`);
+    fail = true;
+  } else {
+    pass++;
+    console.log(`✅ ${label}（零出网）`);
+  }
 }
 
 // ---- 只读：逐条 ----
@@ -131,6 +163,13 @@ expectOne("GET /v1/workers/hello/secrets", `/accounts/${ACC}/workers/scripts/hel
 
 await call("/v1/workers/hello/crons");
 expectOne("GET /v1/workers/hello/crons（用户实测撞过的那条）", `/accounts/${ACC}/workers/scripts/hello/schedules`);
+
+// Workers Builds 读侧（2026-11-02，按官方规格拼，未实测）：先读脚本取 tag，再列触发器
+await call("/v1/workers/hello/builds");
+expectOne("GET workers/:s/builds（先取脚本 tag）", `/accounts/${ACC}/workers/scripts/hello`);
+expectOne("GET workers/:s/builds（再列 triggers）", `/accounts/${ACC}/builds/workers/TAG-1/triggers`);
+await call("/v1/builds/tokens");
+expectOne("GET builds/tokens", `/accounts/${ACC}/builds/tokens`);
 
 await call("/v1/domains");
 expectOne("GET /v1/domains", `/accounts/${ACC}/workers/domains?per_page=100&page=1`);
@@ -340,6 +379,57 @@ expectOne("PUT workers/:s/subdomain（上游 POST）", `/accounts/${ACC}/workers
   method: "POST",
   bodyIncludes: `"enabled":true,"previews_enabled":false`,
 });
+
+// ---- Workers Builds 连接（2026-11-02，按官方规格拼，未实测）----
+// 客户端一条 POST /v1/workers/{s}/builds → 上游两次调用：先 PUT connections，再 POST triggers。
+const CONN_UUID = "C".repeat(32);
+const BUILD_CLIENT_BODY = {
+  provider_type: "github",
+  provider_account_id: 4242,
+  provider_account_name: "octo",
+  repo_id: 123456,
+  repo_name: "octo/site",
+  trigger_name: "octo/site",
+  build_command: "npm run build",
+  deploy_command: "npx wrangler deploy",
+  build_token_uuid: "a".repeat(32),
+  branch_includes: ["main"],
+  branch_excludes: [],
+  path_includes: [],
+  path_excludes: [],
+  root_directory: "",
+  build_caching_enabled: false,
+};
+await runWrite("POST", "/v1/workers/hello/builds", BUILD_CLIENT_BODY);
+expectOne("POST workers/:s/builds（① PUT 仓库连接）", `/accounts/${ACC}/builds/repos/connections`, {
+  method: "PUT",
+  bodyIncludes: `"repo_id":123456`,
+});
+expectOne("POST workers/:s/builds（② POST 触发器，用 connection uuid）", `/accounts/${ACC}/builds/triggers`, {
+  method: "POST",
+  bodyIncludes: `"repo_connection_uuid":"${CONN_UUID}"`,
+});
+{
+  const hit = captured.find((c) => c.url.endsWith("/builds/triggers") && c.method === "POST");
+  const body = String(hit?.body || "");
+  // external_script_id 必须是脚本 tag，不是脚本名 —— 这是最容易写错的一处
+  if (!body.includes(`"external_script_id":"TAG-1"`)) {
+    console.error(`❌ 触发器 body 的 external_script_id 不是脚本 tag（实际：${body.slice(0, 200)}）`);
+    fail = true;
+  } else { pass++; console.log("✅ 触发器 external_script_id 用的是脚本 tag"); }
+}
+await runWrite("DELETE", "/v1/builds/" + "e".repeat(32));
+expectOne("DELETE builds/:id（上游 triggers/{uuid}）", `/accounts/${ACC}/builds/triggers/${"e".repeat(32)}`, { method: "DELETE" });
+
+// 负例：未知字段 / 非数字 repo_id / 非法分支名 / path_includes 非空 —— 全部零出网
+await expectReject("Workers Builds 白名单外字段被拒绝", () =>
+  writeDirect(CTX, "POST", "/v1/workers/hello/builds", { ...BUILD_CLIENT_BODY, deploy_on_push: true }));
+await expectReject("Workers Builds 非数字 repo_id 被拒绝", () =>
+  writeDirect(CTX, "POST", "/v1/workers/hello/builds", { ...BUILD_CLIENT_BODY, repo_id: "abc" }));
+await expectReject("Workers Builds 非法分支名被拒绝", () =>
+  writeDirect(CTX, "POST", "/v1/workers/hello/builds", { ...BUILD_CLIENT_BODY, branch_includes: ["bad~name"] }));
+await expectReject("Workers Builds 非空 path_includes 被拒绝", () =>
+  writeDirect(CTX, "POST", "/v1/workers/hello/builds", { ...BUILD_CLIENT_BODY, path_includes: ["src/**"] }));
 
 // ---- Pages 连接已有 Git 仓库（2026-11-01）：客户端 PATCH /v1/pages/{p}/git →
 // 上游 PATCH 项目对象。⚠️ 请求形状按官方规格拼，**没有真实账号实测**（要连的账号必须先装过 Git App），

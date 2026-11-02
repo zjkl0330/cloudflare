@@ -620,6 +620,16 @@ export async function zonesDirect(ctx: DirectCtx) {
   return { result: all.filter((z: any) => !z?.account?.id || String(z.account.id) === ctx.account) };
 }
 
+/** Workers Builds 的 external_script_id 是脚本 tag（不是脚本名）；拿不到就报错，不猜 */
+async function workerTagDirect(ctx: DirectCtx, script: string): Promise<string> {
+  const r = await rest<any>(ctx.token, `${A(ctx.account)}/workers/scripts/${enc(script)}`, {}, false);
+  const tag = String(r.data?.tag ?? "").trim();
+  if (!tag) {
+    throw new DirectError("notFound", 404, null, `Worker ${script} 没返回 tag，读不了 Builds（可能是脚本不存在或令牌缺 Workers Scripts: Read）。`);
+  }
+  return tag;
+}
+
 /**
  * 直连入口。路由分三类，一条一条对照网关 `app/gateway/src/index.ts` 的注册表：
  *  - 需要 SQL/GraphQL 模板或多请求合并的（流量屏 / WAF / Workers 用量 / D1 查询）：形状与网关逐字一致；
@@ -685,6 +695,18 @@ export async function gwDirect<T = any>(path: string, query: Record<string, stri
   const pgLogs = /^\/v1\/pages\/([^/]+)\/deployments\/([^/]+)\/logs$/i.exec(purePath);
   if (pgLogs) {
     const r = await rest<any>(ctx.token, `${A(ctx.account)}/pages/projects/${enc(pgLogs[1])}/deployments/${enc(pgLogs[2])}/history/logs`, {}, ctx.fresh);
+    return { result: r.data } as unknown as T;
+  }
+  // Workers Builds（2026-11-02）：触发器按脚本 **tag** 查，不是按脚本名。
+  // 没有 tag 就不猜，直接报错 —— 拿脚本名硬拼只会得到一条说得含混的 404。
+  const buildHit = /^\/v1\/workers\/([^/]+)\/builds$/i.exec(purePath);
+  if (buildHit) {
+    const tag = await workerTagDirect(ctx, buildHit[1]);
+    const r = await rest<any[]>(ctx.token, `${A(ctx.account)}/builds/workers/${enc(tag)}/triggers`, { unwrap: "list" }, ctx.fresh);
+    return { result: { triggers: r.data, scriptTag: tag } } as unknown as T;
+  }
+  if (purePath === "/v1/builds/tokens") {
+    const r = await rest<any[]>(ctx.token, `${A(ctx.account)}/builds/tokens`, { unwrap: "list" }, ctx.fresh);
     return { result: r.data } as unknown as T;
   }
   // 其余列表端点：单页有硬上限（/accounts 默认 20、/zones 50、其余 100），全部逐页拿满，
@@ -757,6 +779,115 @@ const SCRIPT_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,62}$/i;
 const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /**
+ * Workers Builds 的客户端请求体校验（与 api.ts workerBuildBody / 网关 catalog 同一套规则）。
+ * 直连没有网关挡着，所以一条都不能少；校验不过就零出网。
+ */
+interface BuildClientBody {
+  provider_type: "github" | "gitlab";
+  provider_account_id: number;
+  provider_account_name: string;
+  repo_id: number;
+  repo_name: string;
+  trigger_name: string;
+  build_command: string;
+  deploy_command: string;
+  build_token_uuid: string;
+  branch_includes: string[];
+  branch_excludes: string[];
+  path_includes: string[];
+  path_excludes: string[];
+  root_directory: string;
+  build_caching_enabled: boolean;
+}
+
+const NUMERIC_ID = /^\d{1,20}$/;
+const OWNER_FOR = {
+  github: /^[A-Za-z0-9][A-Za-z0-9-]{0,99}$/,
+  gitlab: /^[A-Za-z0-9_][A-Za-z0-9._-]*(\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/,
+};
+const REPO_NAME_RE = /^[A-Za-z0-9._-]{1,100}$/;
+const BUILD_TOKEN_RE = /^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateBuildClientBody(rawIn: Record<string, unknown>): BuildClientBody {
+  const bad = (m: string): never => { throw new DirectError("badQuery", 422, null, m); };
+  const allowed = ["provider_type", "provider_account_id", "provider_account_name", "repo_id", "repo_name", "trigger_name", "build_command", "deploy_command", "build_token_uuid", "branch_includes", "branch_excludes", "path_includes", "path_excludes", "root_directory", "build_caching_enabled"];
+  const unknown = Object.keys(rawIn).filter((k) => !allowed.includes(k));
+  if (unknown.length) bad(`不支持的字段：${unknown.join(",")}。这条路由只认 ${allowed.join(" / ")}`);
+
+  const provider_type = String(rawIn.provider_type ?? "");
+  if (provider_type !== "github" && provider_type !== "gitlab") bad('provider_type 只能是 "github" 或 "gitlab"');
+  const ownerRe = OWNER_FOR[provider_type as keyof typeof OWNER_FOR];
+  const numId = (v: unknown, label: string): number => {
+    const s = String(v ?? "").trim();
+    if (!NUMERIC_ID.test(s)) bad(`${label} 必须是数字 id（现在是 ${s || "空"}）`);
+    return Number(s);
+  };
+  const provider_account_id = numId(rawIn.provider_account_id, "provider_account_id");
+  const repo_id = numId(rawIn.repo_id, "repo_id");
+  const repo_name = String(rawIn.repo_name ?? "").trim();
+  if (!repo_name.includes("/")) bad("repo_name 要写成 owner/repo");
+  const owner = repo_name.slice(0, repo_name.lastIndexOf("/"));
+  const repo = repo_name.slice(repo_name.lastIndexOf("/") + 1);
+  if (!ownerRe.test(owner)) bad(`repo_name 的 owner 写法不对：${owner || "空"}`);
+  if (!REPO_NAME_RE.test(repo)) bad(`repo_name 的仓库名写法不对：${repo || "空"}`);
+  const provider_account_name = String(rawIn.provider_account_name ?? "").trim() || owner;
+  if (!ownerRe.test(provider_account_name)) bad(`provider_account_name 写法不对：${provider_account_name}`);
+  const trigger_name = String(rawIn.trigger_name ?? "").trim() || repo_name;
+  if (trigger_name.length > 120) bad("trigger_name 超过 120 字符");
+  const cmd = (v: unknown, label: string): string => {
+    const s = String(v ?? "").trim();
+    if (!s) bad(`${label}不能为空`);
+    if (s.length > 255) bad(`${label}超过 255 字符`);
+    return s;
+  };
+  const build_command = cmd(rawIn.build_command, "构建命令");
+  const deploy_command = cmd(rawIn.deploy_command, "部署命令");
+  const build_token_uuid = String(rawIn.build_token_uuid ?? "").trim();
+  if (!BUILD_TOKEN_RE.test(build_token_uuid)) bad("build_token_uuid 得是 32 位 hex 或 36 位 UUID");
+  const root_directory = String(rawIn.root_directory ?? "").trim();
+  if (root_directory.length > 255) bad("root_directory 超过 255 字符");
+  const branches = (v: unknown, label: string): string[] => {
+    if (!Array.isArray(v)) bad(`${label} 必须是数组（空数组 = 不过滤）`);
+    const list = (v as unknown[]).map((x) => String(x ?? "").trim()).filter(Boolean);
+    if (list.length > 10) bad(`${label}最多 10 条`);
+    for (const b of list) {
+      if (b.length > 255) bad(`${label}里有超过 255 字符的分支`);
+      if (/[\s~^:?[\\]/.test(b)) bad(`${label}里有非法分支名：${b}`);
+    }
+    return list;
+  };
+  const branch_includes = branches(rawIn.branch_includes, "branch_includes");
+  const branch_excludes = branches(rawIn.branch_excludes, "branch_excludes");
+  const paths = (v: unknown, label: string): string[] => {
+    if (!Array.isArray(v)) bad(`${label} 必须是数组（本版固定传空数组）`);
+    if ((v as unknown[]).length) bad(`${label} 本版只支持空数组（没放行路径过滤）`);
+    return [];
+  };
+  const path_includes = paths(rawIn.path_includes, "path_includes");
+  const path_excludes = paths(rawIn.path_excludes, "path_excludes");
+  if (rawIn.build_caching_enabled !== undefined && typeof rawIn.build_caching_enabled !== "boolean") {
+    bad("build_caching_enabled 必须是布尔值");
+  }
+  return {
+    provider_type: provider_type as "github" | "gitlab",
+    provider_account_id,
+    provider_account_name,
+    repo_id,
+    repo_name,
+    trigger_name,
+    build_command,
+    deploy_command,
+    build_token_uuid,
+    branch_includes,
+    branch_excludes,
+    path_includes,
+    path_excludes,
+    root_directory,
+    build_caching_enabled: rawIn.build_caching_enabled === true,
+  };
+}
+
+/**
  * 写侧直连：DNS 增删改 + 按 URL 清缓存 + 版本切换/回滚/灰度 + 自定义域名/路由/环境变量/子域开关
  * （与网关 WRITE_ROUTES 同一张白名单，一条不多）。
  * 校验在 api.ts 的 gwWrite() 里已经做过（validateDns / validatePurgeFiles），
@@ -764,6 +895,64 @@ const ENV_NAME_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
  */
 export async function writeDirect(ctx: DirectCtx, method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<any> {
   const s = seg(path);
+  // ---- Workers Builds（2026-11-02，按官方规格拼，未实测）----
+  // 客户端 POST /v1/workers/{s}/builds = 上游两次调用：
+  //   ① PUT  /accounts/{a}/builds/repos/connections   → repo_connection_uuid
+  //   ② POST /accounts/{a}/builds/triggers             → trigger 对象
+  // 第一次失败就停下，不拿半个连接去建触发器；第二次失败时把 connection uuid 带进错误文案，
+  // 让人知道上游已经留了一条连接（后续可在 dashboard 清理）。
+  if (method === "POST" && s[0] === "workers" && s[2] === "builds" && !s[3]) {
+    const svc = s[1];
+    if (!svc) throw new DirectError("badQuery", 422, null, "缺少脚本名");
+    const b = validateBuildClientBody((body ?? {}) as Record<string, unknown>);
+    const tag = await workerTagDirect(ctx, svc);
+    const conn = await rest<any>(ctx.token, `${A(ctx.account)}/builds/repos/connections`, {
+      method: "PUT",
+      body: {
+        provider_type: b.provider_type,
+        provider_account_id: b.provider_account_id,
+        provider_account_name: b.provider_account_name,
+        repo_id: b.repo_id,
+        repo_name: b.repo_name,
+      },
+    }, false);
+    const connUuid = String(conn.data?.repo_connection_uuid ?? "").trim();
+    if (!connUuid) {
+      throw new DirectError("upstreamBroken", 200, null, "上游接受了仓库连接，但没返回 repo_connection_uuid；触发器没有创建。");
+    }
+    try {
+      const trig = await rest<any>(ctx.token, `${A(ctx.account)}/builds/triggers`, {
+        method: "POST",
+        body: {
+          external_script_id: tag,
+          repo_connection_uuid: connUuid,
+          trigger_name: b.trigger_name,
+          build_command: b.build_command,
+          deploy_command: b.deploy_command,
+          build_token_uuid: b.build_token_uuid,
+          branch_includes: b.branch_includes,
+          branch_excludes: b.branch_excludes,
+          path_includes: b.path_includes,
+          path_excludes: b.path_excludes,
+          root_directory: b.root_directory,
+          build_caching_enabled: b.build_caching_enabled,
+        },
+      }, false);
+      return trig.data;
+    } catch (e) {
+      const msg = `${(e as Error)?.message || e}（仓库连接已建立：${connUuid}，但触发器创建失败）`;
+      throw new DirectError(((e as any)?.kind ?? "upstreamBroken") as any, (e as any)?.http ?? 0, (e as any)?.code ?? null, msg);
+    }
+  }
+  // 断开触发器：只删 /builds/triggers/{uuid}，仓库连接与已有部署都不动
+  if (method === "DELETE" && s[0] === "builds" && s[1] && !s[2]) {
+    const id = s[1];
+    if (!/^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new DirectError("badQuery", 422, null, "trigger uuid 得是 32 位 hex 或 36 位 UUID");
+    }
+    const r = await rest<any>(ctx.token, `${A(ctx.account)}/builds/triggers/${enc(id)}`, { method: "DELETE" }, false);
+    return r.data;
+  }
   // ---- 版本切换 / 回滚 / 灰度：两种形状都经 rin-server 实测（docs/14 §7）----
   // 直连没有网关挡着，网关 validateDeployBody 的那套校验在这里逐字复刻，一条都不能少。
   // ① 单版本（回滚/全量）：{version_id, percentage?(=100), annotations?}

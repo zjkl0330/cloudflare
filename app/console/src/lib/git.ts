@@ -57,6 +57,16 @@ export interface GitRepo {
   defaultBranch: string;
   private: boolean;
   updatedAt: string;
+  /**
+   * 仓库的数字 id（GitHub repo.id / GitLab project.id）。
+   * Workers Builds 的 connections 接口要的就是这个，**不是** owner/name。
+   * 数字可能超过 32 位，统一用字符串存，发出去时再转 Number。
+   */
+  id: string;
+  /** 拥有者的数字 id（GitHub owner.id / GitLab namespace.id），connections 的 provider_account_id */
+  accountId: string;
+  /** 拥有者显示名（GitHub owner.login / GitLab namespace.full_path），connections 的 provider_account_name */
+  accountName: string;
 }
 
 /** 平台 API 失败 → 同形错误，但文案写清是哪个平台、下一步怎么办 */
@@ -134,39 +144,90 @@ export async function listGitRepos(platform: GitPlatform, token: string): Promis
     throw new GwError("unknown", res.status, null, `${PLATFORM_LABEL[platform]} 返回的不是仓库数组`);
   }
   if (isGh) {
-    return json.map((r: any) => {
-      const full = String(r.full_name ?? "");
-      const owner = full.includes("/") ? full.slice(0, full.lastIndexOf("/")) : String(r.owner?.login ?? "");
-      return {
-        platform,
-        owner,
-        name: String(r.name ?? ""),
-        fullName: full || `${owner}/${String(r.name ?? "")}`,
-        defaultBranch: String(r.default_branch ?? ""),
-        private: !!r.private,
-        updatedAt: String(r.updated_at ?? ""),
-      };
-    });
+    return json.map((r: any) => ghRepo(r));
   }
-  return json.map((r: any) => {
-    const full = String(r.path_with_namespace ?? "");
-    const owner = full.includes("/") ? full.slice(0, full.lastIndexOf("/")) : "";
-    const name = String(r.name ?? full.split("/").pop() ?? "");
-    return {
-      platform,
-      owner,
-      name,
-      fullName: full || `${owner}/${name}`,
-      defaultBranch: String(r.default_branch ?? ""),
-      private: String(r.visibility ?? "") !== "public",
-      updatedAt: String(r.last_activity_at ?? ""),
-    };
-  });
+  return json.map((r: any) => glRepo(r));
+}
+
+/** GitHub 仓库对象 → GitRepo（列表与单仓库都用这一份，字段口径不会跑偏） */
+function ghRepo(r: any): GitRepo {
+  const full = String(r.full_name ?? "");
+  const owner = full.includes("/") ? full.slice(0, full.lastIndexOf("/")) : String(r.owner?.login ?? "");
+  return {
+    platform: "github",
+    owner,
+    name: String(r.name ?? ""),
+    fullName: full || `${owner}/${String(r.name ?? "")}`,
+    defaultBranch: String(r.default_branch ?? ""),
+    private: !!r.private,
+    updatedAt: String(r.updated_at ?? ""),
+    id: String(r.id ?? ""),
+    accountId: String(r.owner?.id ?? ""),
+    accountName: String(r.owner?.login ?? owner),
+  };
+}
+
+/** GitLab 项目对象 → GitRepo。命名空间用 full_path（子组要用完整路径） */
+function glRepo(r: any): GitRepo {
+  const full = String(r.path_with_namespace ?? "");
+  const owner = full.includes("/") ? full.slice(0, full.lastIndexOf("/")) : String(r.namespace?.full_path ?? "");
+  const name = String(r.name ?? full.split("/").pop() ?? "");
+  return {
+    platform: "gitlab",
+    owner,
+    name,
+    fullName: full || `${owner}/${name}`,
+    defaultBranch: String(r.default_branch ?? ""),
+    private: String(r.visibility ?? "") !== "public",
+    updatedAt: String(r.last_activity_at ?? ""),
+    id: String(r.id ?? ""),
+    accountId: String(r.namespace?.id ?? ""),
+    accountName: String(r.namespace?.full_path ?? owner),
+  };
+}
+
+/**
+ * 手填 owner/repo 时补上数字 id：Workers Builds 的 connections 接口只认 id，
+ * 不接受 owner/name。这一步不猜 —— 仓库在令牌视野里查不到就报 404，让人改输入。
+ */
+export async function resolveGitRepo(platform: GitPlatform, token: string, owner: string, repo: string): Promise<GitRepo> {
+  if (!token.trim()) throw new GwError("auth", 401, null, `还没填 ${PLATFORM_LABEL[platform]} 令牌。`);
+  const isGh = platform === "github";
+  const url = isGh
+    ? `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+    : `https://gitlab.com/api/v4/projects/${encodeURIComponent(`${owner}/${repo}`)}`;
+  let res: Response;
+  try {
+    res = await withTimeout(fetch(url, {
+      headers: isGh
+        ? { Authorization: "Bearer " + token.trim(), Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }
+        : { "PRIVATE-TOKEN": token.trim() },
+    }), 15_000, "查仓库");
+  } catch (e) {
+    throw asGitError(e);
+  }
+  const text = await res.text();
+  if (!res.ok) throw gitHttpError(platform, res, text);
+  let json: any;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new GwError("unknown", res.status, null, `${PLATFORM_LABEL[platform]} 返回了非 JSON 内容`);
+  }
+  const mapped = isGh ? ghRepo(json) : glRepo(json);
+  if (!mapped.id || !mapped.accountId) {
+    throw new GwError("unknown", res.status, null, `${PLATFORM_LABEL[platform]} 没返回仓库/拥有者的数字 id，无法连 Builds（仓库可能是空的或权限不足）。`);
+  }
+  return mapped;
 }
 
 /* ============================================================================
- * Workers 的「仓库」：Workers Builds 没有官方 API（文档 404，只有 dashboard 路径），
- * 所以这一块只做本机记录 —— 记下 owner/repo/分支，跳 dashboard 真连。不构建、不冒充已连接。
+ * Workers 的「仓库」本机缓存（2026-11-02）
+ *
+ * 真连接现在走 Workers Builds API（见 api.ts 的 workerBuild*）；这里只留一份
+ * 「列表徽章用的摘要」，免得计算页每一行都去打一条 triggers 请求。
+ * connected=true 只会在「读到了真实 trigger」或「连接刚成功」时写入，
+ * 拿不到就不写 —— 徽章宁可没有，也不说"已连接"这种没证据的话。
  * ========================================================================== */
 
 export interface WorkerRepoLink {
@@ -175,6 +236,10 @@ export interface WorkerRepoLink {
   repo: string;
   branch: string;
   savedAt: number;
+  /** 是否对应真实存在的 trigger（false/缺省 = 只是本机记录） */
+  connected?: boolean;
+  /** trigger uuid，断开时用 */
+  triggerId?: string;
 }
 
 const WORKER_REPO_KEY = "cfconsole.worker.repos.v1";

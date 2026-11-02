@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 import ErrorNote from "../components/ErrorNote.vue";
 import UnavailableNote from "../components/board/UnavailableNote.vue";
 import { api, gwHealth, gwMeta, GwError, isNativeApp, setWritesOptIn, writesOptIn, probeToken, type Account } from "../lib/api";
@@ -12,6 +12,7 @@ import { boardPrefs, SUB_TILE_LABELS, toggleSubTile } from "../lib/boardPrefs";
 import { dt } from "../lib/fmt";
 import { useGatewayStore } from "../stores/gateway";
 import { APP_VERSION, ACCEL_BASES, checkUpdate, type UpdateInfo } from "../lib/version";
+import { clearGitToken, getGitToken, maskToken, PLATFORM_LABEL, setGitToken, type GitPlatform } from "../lib/git";
 
 const gw = useGatewayStore();
 /**
@@ -377,6 +378,51 @@ async function doCheckUpdate() {
     checking.value = false;
   }
 }
+
+/* ============================================================================
+ * Git 仓库令牌（GitHub / GitLab 的 PAT）：与「连接仓库」对话框共用同一个钥匙串
+ * （lib/git.ts 的 git.github.token / git.gitlab.token）。所以在这里存一次，
+ * 项目页的连接框打开时就能直接列仓库，不必每次重输。
+ * ========================================================================== */
+const gitPlatforms: GitPlatform[] = ["github", "gitlab"];
+const gitTok = reactive<Record<GitPlatform, { input: string; saved: string | null; reveal: boolean; busy: boolean }>>({
+  github: { input: "", saved: null, reveal: false, busy: false },
+  gitlab: { input: "", saved: null, reveal: false, busy: false },
+});
+const gitTokNote = ref("");
+const gitTokErr = ref("");
+
+async function loadGitTokens() {
+  const [gh, gl] = await Promise.all([getGitToken("github"), getGitToken("gitlab")]);
+  gitTok.github.saved = gh;
+  gitTok.gitlab.saved = gl;
+}
+onMounted(loadGitTokens);
+
+async function saveGitTok(p: GitPlatform) {
+  const st = gitTok[p];
+  gitTokErr.value = "";
+  gitTokNote.value = "";
+  st.busy = true;
+  try {
+    await setGitToken(p, st.input);
+    st.saved = st.input.trim();
+    st.input = "";
+    gitTokNote.value = `${PLATFORM_LABEL[p]} 令牌已存到本机（${maskToken(st.saved)}）。「连接仓库」打开时会直接用它列仓库。`;
+  } catch (e) {
+    gitTokErr.value = e instanceof GwError ? e.message : String((e as Error)?.message || e);
+  } finally {
+    st.busy = false;
+  }
+}
+
+async function clearGitTok(p: GitPlatform) {
+  await clearGitToken(p);
+  gitTok[p].saved = null;
+  gitTok[p].input = "";
+  gitTokErr.value = "";
+  gitTokNote.value = `${PLATFORM_LABEL[p]} 令牌已从本机清除；已经连好的 Pages 项目不受影响。`;
+}
 </script>
 
 <template>
@@ -677,6 +723,46 @@ async function doCheckUpdate() {
         <div class="small muted" style="margin-top: 6px">
           其余账号：再点一次「用 Cloudflare 登录」并选对应账号 —— 一次授权对应本地一条账号记录。
         </div>
+      </div>
+    </div>
+    <!-- ============ Git 仓库令牌（GitHub / GitLab，系统钥匙串）============ -->
+    <div class="card wide">
+      <h3>Git 仓库令牌（GitHub / GitLab）</h3>
+      <div class="small muted">
+        这里存的是 <b>GitHub / GitLab 的个人访问令牌（PAT）</b>，只用来列你自己的仓库、给 Pages「连接仓库」选源；
+        跟上面的 Cloudflare API Token 完全分开，存系统钥匙串，不进保险箱、也不经网关。
+        <template v-if="!directMode">当前是网页模式：令牌能存，但浏览器里列仓库会被 CORS 挡住，连接仓库仍要在 APK 里做。</template>
+      </div>
+
+      <div v-for="p in gitPlatforms" :key="p">
+        <div class="row" style="margin-top: 12px; gap: 8px; align-items: baseline">
+          <b>{{ PLATFORM_LABEL[p] }}</b>
+          <span v-if="gitTok[p].saved" class="small muted">已存 {{ maskToken(gitTok[p].saved || "") }}</span>
+          <span v-else class="small muted">还没存令牌</span>
+        </div>
+        <div class="row">
+          <input
+            v-model="gitTok[p].input"
+            class="field sec"
+            :class="{ plain: gitTok[p].reveal }"
+            style="flex: 1"
+            type="text"
+            :placeholder="p === 'github' ? 'ghp_… / github_pat_…' : 'glpat-…'"
+            autocomplete="off"
+            spellcheck="false"
+            @keyup.enter="saveGitTok(p)"
+          />
+          <button class="ghost" @click="gitTok[p].reveal = !gitTok[p].reveal">{{ gitTok[p].reveal ? "隐藏" : "显示" }}</button>
+          <button class="primary" :disabled="gitTok[p].busy" @click="saveGitTok(p)">{{ gitTok[p].busy ? "保存中…" : "保存" }}</button>
+          <button class="ghost" :disabled="!gitTok[p].saved" @click="clearGitTok(p)">清除</button>
+        </div>
+      </div>
+
+      <div v-if="gitTokNote" class="small" style="color: var(--ok); margin-top: 8px">{{ gitTokNote }}</div>
+      <div v-if="gitTokErr" class="small" style="color: var(--bad); margin-top: 8px">{{ gitTokErr }}</div>
+      <div class="small muted" style="margin-top: 8px">
+        GitHub 令牌只需要 <code>repo</code> 的读权限（经典令牌勾 <code>repo</code>，细粒度令牌给 Contents: Read + Metadata: Read 即可）；
+        GitLab 用 <code>read_api</code> 的 PAT。令牌只在这台设备上，换机要重填。
       </div>
     </div>
     </details>

@@ -156,9 +156,11 @@ async function loadPages() {
 
 const hasProject = computed(() => pages.value.length > 0);
 
-/* ---------- Pages 连接 Git 仓库 / Workers 仓库记录（2026-11-01） ----------
- * Pages 是真写（PATCH 项目对象，仅 APK 直连）；Workers Builds 没有官方 API，
- * 所以 Workers 只把 owner/repo 记在本机并给一个 dashboard 入口（UI 明写"仅记录 · 不构建"）。 */
+/* ---------- Pages / Workers 连接 Git 仓库（2026-11-02） ----------
+ * Pages 是真写（PATCH 项目对象，仅 APK 直连）；Workers 也是真写（Workers Builds API，
+ * 客户端一条 POST 由直连层/网关拆成 connection + trigger 两次上游调用）。
+ * 本机缓存仍留一份摘要给列表徽章用：connected=true 只来自「读到真实 trigger」或「刚连成功」，
+ * 拿不到就不写 —— 徽章宁可没有，也不说没证据的话。 */
 const gitProject = ref<any | null>(null);
 const gitNote = ref("");
 const repoWorker = ref<any | null>(null);
@@ -198,11 +200,17 @@ function workerRepoOf(w: any): WorkerRepoLink | null {
   return workerRepoMap.value.get(String(w.__acc ?? accountId.value) + "|" + workerName(w)) ?? null;
 }
 
-function workerRepoBadges(w: any): { text: string; title?: string }[] {
+function workerRepoBadges(w: any): { text: string; cls?: string; title?: string }[] {
   const r = workerRepoOf(w);
   if (!r) return [];
   const who = r.platform === "gitlab" ? "GitLab" : "GitHub";
-  return [{ text: "仓库已记", title: `本机记录：${who} ${r.owner}/${r.repo}${r.branch ? " · " + r.branch : ""}（仅记录、不构建；真连去 dashboard）` }];
+  if (!r.connected) {
+    return [{ text: "本机记录", title: `只是本机摘要：${who} ${r.owner}/${r.repo}${r.branch ? " · " + r.branch : ""}。没有读到真实触发器，不代表已连接。` }];
+  }
+  return [{
+    text: `Git · ${r.owner}/${r.repo}`,
+    title: `${who} · 触发分支 ${r.branch || "不限"}${r.triggerId ? " · trigger " + r.triggerId : ""}（来自 Workers Builds 的触发器列表）`,
+  }];
 }
 
 function onGitConnected(v: { owner: string; repo: string; branch: string }) {
@@ -283,6 +291,9 @@ function toggleClean(w: string) {
       <button class="chip" :class="{ on: kind === 'workers' }" @click="kind = 'workers'">Workers</button>
       <button class="chip" :class="{ on: kind === 'pages' }" @click="kind = 'pages'">Pages</button>
     </div>
+    <div v-if="kind === 'all'" class="small muted" style="margin-bottom: 10px">
+      看板只汇总、不放逐项动作：要连接仓库请切到 Pages 分档（项目行第一个动作）或 Workers 分档（行内「仓库」）。
+    </div>
 
     <!-- 合并视图（只读）：账号数、取数进度、逐账号失败都在这里说清 -->
     <div v-if="agg.on" class="aggbar">
@@ -319,6 +330,10 @@ function toggleClean(w: string) {
     <div class="card" v-if="kind === 'workers'">
       <h3>Workers（{{ workers.length }} 个）</h3>
       <ErrorNote :err="workersErr" />
+      <div class="small muted" style="margin: 6px 0 10px">
+        Worker 行里的「仓库」连接 Workers Builds：选一个 Git 仓库、填构建/部署命令与 build token，推送后真的会构建并部署。
+        连接成功前不会显示 Git 徽章；端点按官方规格拼成，尚未在真实账号实测，错误会原样上屏。
+      </div>
       <div v-if="workers.length" style="margin-bottom: 10px">
         <div class="row" style="margin-bottom: 8px">
           <input v-model="wq" class="field" style="max-width: 200px" placeholder="搜索 Worker 名称" />
@@ -332,12 +347,13 @@ function toggleClean(w: string) {
       </div>
       <div class="empty" v-if="workersLoading && !shownWorkers.length">加载中…</div>
       <div class="rows" v-if="shownWorkers.length">
+        <!-- max=10：9 张分区卡 + 「仓库」全部露出，只剩没实现的「日志」收进更多 -->
         <RowCard
           v-for="w in shownWorkers"
           :key="(w.__acc || '') + workerName(w)"
           :title="workerName(w)"
           :meta="`${rel(w.modified_on)} 修改 · ${dt(w.created_on, false)} 创建`"
-          :max="6"
+          :max="10"
           :badges="[
             ...(w.__accName ? [{ text: w.__accName, title: '归属账号 ' + w.__acc }] : []),
             ...(w.tail_consumers && w.tail_consumers.length ? [{ text: '实时日志', title: '字段 tail_consumers：这个 Worker 挂了 Workers Tail 消费者（实时日志流）' }] : []),
@@ -391,6 +407,7 @@ function toggleClean(w: string) {
       <div class="small muted" style="margin: 6px 0 10px">
         点项目行或下方任一动作进入项目详情：概览、部署历史（含回滚 / 重试 / 构建日志）、自定义域名、环境变量与构建配置。
         「连接仓库」是把已有项目接到已有 Git 仓库，不新建项目；只有 APK 直连模式能发这条写请求。
+        已经连过 Git 的项目，行上会多一个「Git · owner/repo」徽章（来自项目对象的 source 字段；拿不到就不显示，不猜）。
       </div>
       <div v-if="gitNote" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ gitNote }}</div>
 
@@ -418,7 +435,7 @@ function toggleClean(w: string) {
       </div>
     </div>
 
-    <!-- 两个仓库对话框：Pages 是真写（PATCH 项目对象），Workers 只记本机 + 跳 dashboard -->
+    <!-- 两个仓库对话框：Pages 走 PATCH 项目对象，Workers 走 Workers Builds（都是真写） -->
     <GitConnectDialog
       :project="gitProject ? String(gitProject.name) : null"
       :existing="gitProject ? pageSource(gitProject) : null"

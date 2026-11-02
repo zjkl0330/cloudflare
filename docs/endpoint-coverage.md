@@ -150,17 +150,25 @@
 | rulesets 列表 | `GET /zones/{z}/rulesets` | 200 | ✅ 实测 200 |
 | account entrypoint http_request_firewall_custom | `GET /accounts/{a}/rulesets/phases/http_request_firewall_custom/entrypoint` | 404 | 🟠 code 10003 could not find entrypoint ruleset in the http_request_firewa |
 
-## Git 仓库连接（2026-11-01 新增，未实测）
+## Git 仓库连接（2026-11-02 新增，未实测）
 
 > 这一节不是证据文件生成的：我们**没有**可用的 GitHub/GitLab 凭据，也没在真账号上装过 CF 的 Git App，
-> 所以只锁「发出去的请求形状」，真实 PATCH 留给用户真机验收。写侧仍走本机写开关 + 预览确认两道闸门。
+> 所以只锁「发出去的请求形状」，真实写操作留给用户真机验收。写侧仍走本机写开关 + 预览确认两道闸门。
 
 | 动作 | 请求 | 状态 | 结论与边界 |
 |---|---|---|---|
 | Pages 连接已有仓库 | `PATCH /accounts/{a}/pages/projects/{p}`（body: `source` / `build_config` / `production_branch`） | 🟡 形状来自官方规格 | 只能连**已有**项目到**已有**仓库；账号必须先在 dashboard 装过 GitHub/GitLab 集成，OAuth 授权无法用 API 完成；仅 APK 直连可发（网页模式整表单灰掉） |
 | 列我的仓库 · GitHub | `GET https://api.github.com/user/repos` | 🟡 仅 APK | 用用户自备 PAT（classic `repo` 或细粒度 Metadata/Contents 读）；浏览器无 CORS，网页模式不提供 |
 | 列我的仓库 · GitLab | `GET https://gitlab.com/api/v4/projects?membership=true` | 🟡 仅 APK | 用 `read_api` 范围的 PAT；同样无 CORS |
-| Workers 连接构建仓库 | —（无官方 API） | 🚫 做不了 | Workers Builds 只能在 dashboard 操作；App 仅在本机记录 owner/repo/分支并提供 dashboard 跳转，界面明写「仅记录 · 不构建」 |
+| Workers 读触发器 | `GET /accounts/{a}/builds/workers/{tag}/triggers` | 🟡 按官方规格拼、未实测 | `tag` 先由 `GET /accounts/{a}/workers/scripts/{s}` 取（不是脚本名）；缺 tag 直接报错，不硬拼 |
+| Workers 列 build token | `GET /accounts/{a}/builds/tokens` | 🟡 按官方规格拼、未实测 | 选已有 token 的 uuid 填进 trigger；没有 token 需先在 dashboard 建 |
+| Workers 建仓库连接 | `PUT /accounts/{a}/builds/repos/connections`（body: `provider_type` / `provider_account_id` / `provider_account_name` / `repo_id` / `repo_name`） | 🟡 按官方规格拼、未实测 | 返回 `repo_connection_uuid`；仓库的 owner/repo 数字 id 由 `GET /user/repos`（GitHub）或 `/projects`（GitLab）解析后转 Number |
+| Workers 建构建触发器 | `POST /accounts/{a}/builds/triggers`（body 含 `external_script_id` / `repo_connection_uuid` / `trigger_name` / `build_command` / `deploy_command` / `build_token_uuid` / 分支路径过滤 / `root_directory` / `build_caching_enabled`） | 🟡 按官方规格拼、未实测 | 客户端只发一条 POST，直连层/网关拆成「connection → trigger」两次上游调用；trigger 失败时错误里带回 connection uuid，便于 dashboard 清理 |
+| Workers 断开构建 | `DELETE /accounts/{a}/builds/triggers/{uuid}` | 🟡 按官方规格拼、未实测 | 只删触发器，不动仓库连接与已部署版本 |
+
+> Workers Builds 的硬前提：令牌必须是 user-scoped、带 `Workers Builds Configuration: Edit`；
+> 账号须已在 dashboard 装过 Cloudflare GitHub/GitLab App（OAuth 装 App 无法用 API 完成）。
+> 网页模式只能新建 GitHub 连接（GitHub REST 有 CORS，GitLab API 没有）；已有触发器的读取/断开两种模式都可用。
 
 ## 本阶段刻意没发请求的写操作（需授权后逐项补测）
 

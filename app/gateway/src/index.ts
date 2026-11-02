@@ -43,6 +43,7 @@ import {
   validatePageDomainBody,
   validatePageEnvBody,
   validateWorkerSubdomainBody,
+  validateWorkerBuildBody,
   assertPurgeHostsInZone,
   noteCreatedRecord,
   canDeleteRecord,
@@ -330,6 +331,18 @@ function param(c: Ctx, name: "s" | "v" | "zone" | "p" | "id" | "ns" | "key" | "d
 }
 
 /**
+ * Workers Builds 的 `external_script_id` 是脚本 **tag**（不是脚本名）。拿不到就报错，
+ * 不拿脚本名硬拼 —— 拼错时上游会给一条空触发器列表，界面会误报「没连仓库」。
+ */
+async function workerTag(cf: CfClient, env: Env, s: string): Promise<string> {
+  const tag = String(((await reads.workerScript(cf, env, s)).data as any)?.tag ?? "").trim();
+  if (!tag) {
+    throw new CfError("notFound", 404, null, `Worker ${s} 没返回 tag，读不了 Builds（可能是脚本不存在或令牌缺 Workers Scripts: Read）。`);
+  }
+  return tag;
+}
+
+/**
  * 统一包装：所有路由都 async，因为 CfClient 的每一层都是网络调用。
  * 响应头三个字段是给前端和实测脚本用的（界面上「这条数据是缓存的」不能靠猜）：
  *   x-gw-cache      hit=全部命中缓存 / miss=全部出网 / mixed=一部分 / fresh=这次是强制刷新
@@ -572,6 +585,22 @@ app.get("/v1/workers/:s/script-settings", route(async (c) => ({ result: (await r
 app.get("/v1/workers/:s/subdomain", route(async (c) => ({ result: (await reads.workerSubdomain(cf(c), E(c), param(c, "s"))).data })));
 app.get("/v1/workers/:s/secrets", route(async (c) => ({ result: (await reads.workerSecrets(cf(c), E(c), param(c, "s"))).data })));
 app.get("/v1/workers/:s/crons", route(async (c) => ({ result: (await reads.workerCrons(cf(c), E(c), param(c, "s"))).data })));
+/**
+ * Workers Builds 触发器（只读）。2026-11-02 按官方规格拼，**未实测**：
+ * `GET …/builds/workers/{tag}/triggers` —— 这一层用脚本 **tag**（external_script_id），
+ * 所以先读脚本本体取 tag；tag 缺失就报错，不拿脚本名硬拼（拼错会得到一条空列表，
+ * 界面会误报「没连仓库」）。信封同时回 tag，前端下次写请求对得上。
+ */
+app.get(
+  "/v1/workers/:s/builds",
+  route(async (c) => {
+    const s = param(c, "s");
+    const tag = await workerTag(cf(c), E(c), s);
+    return { result: { triggers: (await reads.workerBuildTriggers(cf(c), E(c), tag)).data, scriptTag: tag } };
+  }),
+);
+/** build token 列表：建触发器必填其中一个 uuid（先在 dashboard 建） */
+app.get("/v1/builds/tokens", route(async (c) => ({ result: (await reads.buildsTokens(cf(c), E(c))).data })));
 
 // ---------- 自定义域名 / DNS ----------
 app.get("/v1/domains", route(async (c) => ({ result: (await reads.workerDomains(cf(c), E(c))).data })));
@@ -910,6 +939,47 @@ app.put(
     const body = validateWorkerSubdomainBody(await jsonBody(c));
     const r = await writes.workerSubdomainPut(cf(c), E(c), s, body);
     return { result: r.data };
+  }),
+);
+
+/**
+ * Workers Builds 连接（2026-11-02 按官方规格拼，未实测）：
+ * 客户端一条 POST → 上游两次调用：PUT …/builds/repos/connections 拿 `repo_connection_uuid`
+ * → POST …/builds/triggers（`external_script_id` 用脚本 tag）。第一次失败就停；
+ * 第二次失败时把已建立的 connection uuid 放进错误文案，用户知道上游留了什么。
+ */
+app.post(
+  "/v1/workers/:s/builds",
+  route(async (c) => {
+    const s = param(c, "s");
+    const draft = validateWorkerBuildBody(await jsonBody(c));
+    const tag = await workerTag(cf(c), E(c), s);
+    const conn = await writes.buildsConnectionPut(cf(c), E(c), draft.connection);
+    const uuid = String((conn.data as any)?.repo_connection_uuid ?? "").trim();
+    if (!uuid) {
+      throw new CfError("upstreamBroken", 200, null, "上游接受了仓库连接，但没返回 repo_connection_uuid；触发器没有创建。");
+    }
+    try {
+      const r = await writes.buildsTriggerCreate(cf(c), E(c), {
+        external_script_id: tag,
+        repo_connection_uuid: uuid,
+        ...draft.trigger,
+      });
+      return { result: r.data };
+    } catch (e) {
+      const msg = `${(e as Error)?.message || e}（仓库连接已建立：${uuid}，但触发器创建失败）`;
+      throw new CfError(((e as any)?.kind ?? "upstreamBroken") as Kind, (e as any)?.http ?? 0, (e as any)?.code ?? null, msg);
+    }
+  }),
+);
+
+/** 断开构建触发器：只删触发器，仓库连接与已部署版本都不动 */
+app.delete(
+  "/v1/builds/:id",
+  route(async (c) => {
+    const id = validateWorkerObjId(param(c, "id"), "trigger uuid");
+    const r = await writes.buildsTriggerDelete(cf(c), E(c), id);
+    return { result: r.data ?? { id, deleted: true } };
   }),
 );
 
