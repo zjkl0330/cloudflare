@@ -243,20 +243,25 @@ function open(r: BoardRow, c?: string) {
 <style scoped>
 .board { margin-bottom: 12px; }
 .bh { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+/* 看板标题与全站卡片眉题同一档：小号、大写字距、muted（不是又一种大标题） */
+.bh h3 { margin: 0; font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
+  letter-spacing: .04em; text-transform: uppercase; }
 
-/* 4 格合计：与详情页的 kv 同一密度，数字用等宽字体对齐 */
+/* 4 格合计：ghx 的读数带 —— 1px 发丝线切格，不再一格一个圆角盒子 */
 .bstats {
-  display: grid; gap: 8px; margin: 10px 0 12px;
+  display: grid; gap: 1px; margin: 10px 0 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--line); border: 1px solid var(--line);
+  border-radius: var(--r-sm); overflow: hidden;
 }
 @media (min-width: 640px) { .bstats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .bstat {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
-  padding: 9px 11px; border-radius: var(--radius-s);
-  background: var(--panel-2); border: 1px solid var(--line-soft);
+  padding: 10px 11px; background: var(--bg);
 }
 .bl { font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em; }
-.bn { font-family: var(--font-num); font-size: 22px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
+.bn { font-family: var(--font-num); font-size: 20px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; }
 .bn.small-num { font-size: 16px; }
 .bs {
   font-size: var(--t-2xs); color: var(--muted);
@@ -264,22 +269,23 @@ function open(r: BoardRow, c?: string) {
 }
 
 .btool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.btool .field { flex: 1 1 140px; width: auto; min-width: 0; max-width: 220px; }
 /* 不用全局 .rows：它带 8px gap，这里要的是连续行 + 分隔线 */
 .blist { display: flex; flex-direction: column; }
 
 /* 一行一项：左类型标 + 名称/灰字 + 右侧状态与动作 */
 .brow {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 2px; border-top: 1px solid var(--line-soft);
+  padding: 9px 4px; border-top: 1px solid var(--line-soft);
   cursor: pointer; transition: background .14s ease;
 }
 .brow:first-child { border-top: 0; }
-.brow:hover { background: var(--panel-3); }
+.brow:hover { background: var(--panel-2); }
 .bp {
-  flex: none; width: 20px; height: 20px; border-radius: 6px;
+  flex: none; width: 22px; height: 22px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-num); font-size: 11px; font-weight: 700;
-  color: var(--muted); background: var(--panel-2); border: 1px solid var(--line);
+  font-family: var(--font-num); font-size: 10.5px; font-weight: 700;
+  color: var(--muted); background: var(--bg); border: 1px solid var(--line);
 }
 .bp.worker { color: var(--accent); border-color: var(--accent-dim); }
 .bm { flex: 1; min-width: 0; }
@@ -299,6 +305,11 @@ function open(r: BoardRow, c?: string) {
   font-size: var(--t-2xs); color: var(--muted); margin-top: 1px;
 }
 .bmeta .dot { opacity: .5; }
+/* 这里的 .dot 只是分隔用的「•」：全局 .dot 是 8px 绿色状态灯，直接套会把分隔点变成绿灯 */
+.bmeta .dot {
+  width: auto; height: auto; border-radius: 0; background: none; box-shadow: none;
+  color: var(--muted); font-size: inherit; line-height: inherit; flex: none;
+}
 .bmeta .last { font-family: var(--font-num); }
 .br { display: flex; align-items: center; gap: 6px; flex: none; }
 .bacts { display: inline-flex; gap: 2px; }

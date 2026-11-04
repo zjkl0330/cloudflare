@@ -434,11 +434,12 @@ function isLive(versionId: unknown): boolean {
 
 <template>
   <div>
-    <div class="row" style="justify-content: space-between; margin-bottom: 10px">
-      <h2 style="margin: 0; font-size: 17px">{{ name }}</h2>
+    <div class="row whead">
+      <h2 class="wname">{{ name }}</h2>
+      <span class="small muted">Worker · 工作脚本</span>
     </div>
 
-    <div class="row" style="gap: 6px; flex-wrap: wrap; margin-bottom: 10px">
+    <div class="row jn">
       <button class="chip" type="button" @click="jumpTo('current')">当前版本</button>
       <button class="chip" type="button" @click="jumpTo('versions')">版本列表 / 回滚</button>
       <button class="chip" type="button" @click="jumpTo('deployments')">部署历史</button>
@@ -536,7 +537,7 @@ function isLive(versionId: unknown): boolean {
             <option v-if="!zones.data?.length" value="">没有可见 zone</option>
             <option v-for="z in zones.data || []" :key="z.id" :value="String(z.id)">{{ z.name }}</option>
           </select>
-          <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0">
+          <div class="genp">
             <input
               v-model="domPrefix"
               class="field"
@@ -767,19 +768,67 @@ function isLive(versionId: unknown): boolean {
 </template>
 
 <style scoped>
-button.sm { padding: 4px 10px; font-size: 12px; }
+/* 详情页头：名称 + 类型注脚；下面的锚点条横向滚动，不再折成两三行把首屏吃掉 */
+.whead { justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.wname { margin: 0; font-size: var(--t-lg); font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.jn { flex-wrap: nowrap; gap: 6px; margin-bottom: 12px; padding-bottom: 2px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.jn::-webkit-scrollbar { display: none; }
+.jn .chip { flex: none; padding: 4px 9px; }
+
+/* 卡片节奏：一屏一个主任务，卡片间距比列表页略松 */
+.card { margin-bottom: 12px; }
+
+/* kv 行：ghx 的 key-value 面板 —— 发丝线分行，值走等宽，标签不抢戏 */
+.kv { grid-template-columns: 86px 1fr; gap: 0 12px; font-size: var(--t-xs); }
+.kv dt, .kv dd { padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.kv > :first-child, .kv > :nth-child(2) { border-top: 0; padding-top: 2px; }
+.kv dt { line-height: 1.5; }
+.kv dd { line-height: 1.55; word-break: normal; overflow-wrap: anywhere; }
+
+/* 卡片标题在 .row 里时（自定义域名那张）也要落到同一档眉题，别变成第二个大标题 */
+.card > .row > h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
+
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .errtext { color: var(--bad); }
-.editbox { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+/* 域名表单：不另起一只圆角盒子，用一条发丝线把它跟上面的名单切开 */
+.editbox { margin-top: 10px; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; display: flex; flex-direction: column; gap: 8px; }
 .gen { flex-wrap: wrap; gap: 6px; }
 .gen .field { max-width: 280px; }
+.genp { display: flex; align-items: center; gap: 4px; flex: 1 1 150px; min-width: 0; }
 .sel { width: auto; }
-/* 低频区块折叠：二级页默认只留当前版本 / 域名 / 版本 / 部署，其余收成一行摘要 */
-.foldcard { border: 1px solid var(--line-soft); border-radius: 14px; background: var(--panel-2); margin-bottom: 12px; overflow: hidden; }
-.foldcard > summary { display: flex; align-items: center; gap: 8px; padding: 11px 13px; cursor: pointer; list-style: none; font-size: var(--t-sm); font-weight: 650; color: var(--fg-2); }
+/* 窄屏把绑域名表单改成三行：zone 一行、前缀一行、按钮一行（原来挤在一行，前缀框只剩几十像素） */
+@media (max-width: 480px) {
+  .gen .sel { flex: 1 1 100%; width: 100%; max-width: none; }
+  .genp { flex: 1 1 100%; }
+  .genp .field { max-width: none; }
+  .gen > button { margin-left: auto; }
+}
+
+/* 低频区块折叠：ghx 的分区眉题（大写字距 + 发丝线），展开后里面仍是正常卡片。
+   summary 已经写了标题，卡内重复的 h3 就不再显示（DOM 保留，不丢任何入口）。 */
+.foldcard { border: 0; background: transparent; margin: 14px 0 0; overflow: visible; }
+.foldcard > summary {
+  display: flex; align-items: center; gap: 8px; padding: 0 2px 7px;
+  border-bottom: 1px solid var(--line-soft); cursor: pointer; list-style: none;
+  font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
+  letter-spacing: .04em; text-transform: uppercase;
+}
 .foldcard > summary::-webkit-details-marker { display: none; }
-.foldcard > summary::before { content: ""; width: 6px; height: 6px; flex: none; border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: rotate(-45deg); transition: transform .18s ease; }
+.foldcard > summary::before {
+  content: ""; width: 6px; height: 6px; flex: none;
+  border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted);
+  transform: rotate(-45deg); transition: transform .18s ease;
+}
 .foldcard[open] > summary::before { transform: rotate(45deg); }
-.foldcard .fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted); }
-.foldcard > .card { margin: 0 8px 8px; }
+.foldcard[open] > summary { margin-bottom: 10px; }
+.foldcard .fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted);
+  letter-spacing: 0; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.foldcard > .card { margin: 0 0 10px; }
+.foldcard > .card > h3 { display: none; }
+/* 锚点跳过来时，折叠态也要看得见落点（原来只有 .card 有 flash，details 上等于没反馈） */
+.foldcard.flash > summary { color: var(--accent); border-bottom-color: var(--accent); }
 </style>

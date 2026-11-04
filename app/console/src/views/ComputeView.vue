@@ -286,7 +286,7 @@ function toggleClean(w: string) {
     <!-- Workers / Pages 分段：默认看板（二合一），另两档是逐项动手的完整列表。
          原来这三档叫「全部 / Workers / Pages」，而「全部」只是把两张表上下拼起来，
          数量与时间各写一遍 —— 现在「看板」真的是一块合并后的读数面。 -->
-    <div class="row" style="gap: 4px; margin-bottom: 10px">
+    <div class="row segs">
       <button class="chip" :class="{ on: kind === 'all' }" @click="kind = 'all'">看板</button>
       <button class="chip" :class="{ on: kind === 'workers' }" @click="kind = 'workers'">Workers</button>
       <button class="chip" :class="{ on: kind === 'pages' }" @click="kind = 'pages'">Pages</button>
@@ -335,8 +335,8 @@ function toggleClean(w: string) {
         连接成功前不会显示 Git 徽章；端点按官方规格拼成，尚未在真实账号实测，错误会原样上屏。
       </div>
       <div v-if="workers.length" style="margin-bottom: 10px">
-        <div class="row" style="margin-bottom: 8px">
-          <input v-model="wq" class="field" style="max-width: 200px" placeholder="搜索 Worker 名称" />
+        <div class="row wtool">
+          <input v-model="wq" class="field" placeholder="搜索 Worker 名称" />
           <!-- 排序并成一个键：两个 chip 只切一个状态，占一行不值当 -->
           <button
             class="chip"
@@ -452,18 +452,28 @@ function toggleClean(w: string) {
 </template>
 
 <style scoped>
-/* 合并视图状态条：与域名页同一套语汇（账号数 + 进度 + 逐账号错误） */
-.aggbar { border: 1px solid var(--accent-dim); border-radius: 12px; padding: 9px 11px;
-  margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+/* 顶部分段：ghx 的 pill 组，只靠描边/选中面分层，不叠投影 */
+.segs { gap: 4px; margin: 0 0 12px; }
+
+/* 合并视图状态条：一条强调色左轨 + 浅底，不再画成一整张卡片 */
+.aggbar { border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: 13px; font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
-/* 版本清理的折叠卡：低频运维功能默认收起，展开后内容与原来那张卡一致。
-   折叠壳不画卡片壳（只一个眉题 + 浅底），里面的内容仍走全局 .card 的读数轨语义。 */
-.foldcard { border: 1px solid var(--line-soft); border-radius: 14px; background: var(--panel-2); margin-bottom: 12px; overflow: hidden; }
+/* 列表工具条：搜索框吃掉剩余宽度，排序键靠右 */
+.wtool { gap: 6px; margin-bottom: 8px; }
+.wtool .field { flex: 1; min-width: 0; max-width: 220px; }
+
+/* 版本清理的折叠卡：ghx 的分区眉题（大写字距 + 发丝线），不再套一层圆角壳。
+   展开后内容照旧走全局 .card 的读数轨语义。 */
+.foldcard { border: 0; background: transparent; margin: 16px 0 10px; overflow: visible; }
 .foldcard > summary {
-  display: flex; align-items: center; gap: 8px; padding: 11px 13px;
-  cursor: pointer; list-style: none; font-size: var(--t-sm); font-weight: 650; color: var(--fg-2);
+  display: flex; align-items: center; gap: 8px; padding: 0 2px 7px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer; list-style: none;
+  font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
+  letter-spacing: .04em; text-transform: uppercase;
 }
 .foldcard > summary::-webkit-details-marker { display: none; }
 .foldcard > summary::before {
@@ -472,6 +482,7 @@ function toggleClean(w: string) {
   transform: rotate(-45deg); transition: transform .18s ease;
 }
 .foldcard[open] > summary::before { transform: rotate(45deg); }
-.fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted); }
-.fc-body { padding: 0 12px 12px; }
+.fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted);
+  letter-spacing: 0; text-transform: none; }
+.fc-body { padding: 10px 0 0; }
 </style>
