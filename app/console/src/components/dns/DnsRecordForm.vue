@@ -229,16 +229,16 @@ function submit() {
 <style scoped>
 .df { display: flex; flex-direction: column; gap: 12px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.fld { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
+.fld { display: flex; flex-direction: column; gap: 5px; font-size: var(--t-xs); color: var(--muted); }
 .fld-narrow { max-width: 200px; }
 .fld span { font-weight: 600; }
 .mono { font-family: var(--font-num); }
 .ttl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.seg { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: 13px; cursor: pointer; }
+.seg { padding: 7px 14px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-size: var(--t-sm); cursor: pointer; }
 .seg.on { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / .12); }
 .ttl-in { max-width: 150px; }
-.ttl-bad { margin: 4px 0 0; color: var(--bad); font-size: 12px; }
-.sw { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--fg); cursor: pointer; }
+.ttl-bad { margin: 4px 0 0; color: var(--bad); font-size: var(--t-2xs); }
+.sw { display: flex; align-items: center; gap: 8px; font-size: var(--t-sm); color: var(--fg); cursor: pointer; }
 .sw input { width: 18px; height: 18px; accent-color: var(--accent); }
 .foot { display: flex; gap: 10px; justify-content: flex-end; }
 .note { margin: 0; }

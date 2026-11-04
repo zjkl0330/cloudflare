@@ -844,7 +844,7 @@ function refresh() {
 .item-wrap .item { border-bottom: 0; }
 .item-wrap:last-child { border-bottom: none; }
 .depdetail { padding: 2px 12px 12px; }
-.stages { margin-top: 10px; display: flex; flex-direction: column; gap: 1px; background: var(--line); border-radius: 8px; overflow: hidden; }
+.stages { margin-top: 10px; display: flex; flex-direction: column; gap: 1px; background: var(--line); border-radius: var(--r-sm); overflow: hidden; }
 .sec-h { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; padding: 8px 10px 4px; }
 .stage { background: var(--panel); padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
 .stage-n { flex: 1; font-size: var(--t-sm); }
@@ -858,7 +858,7 @@ function refresh() {
   font-size: var(--t-xs);
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   padding: 8px 10px;
   max-height: 240px;
   overflow: auto;

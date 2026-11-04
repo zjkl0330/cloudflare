@@ -311,13 +311,13 @@ path.hit { fill: var(--accent); cursor: pointer; }
 
 /* 缩放控件：浮在地图右上角的一小条，吃控件 token，深浅两档都读得清 */
 .zoombar { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
-.zb { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px;
+.zb { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-sm);
   background: rgb(var(--bg-rgb) / .86); backdrop-filter: blur(6px); color: var(--fg-2); font-size: 17px; line-height: 1; cursor: pointer;
   box-shadow: var(--e-1); }
-.zb.txt { font-size: 11px; width: 30px; height: auto; padding: 5px 0; letter-spacing: .02em; }
+.zb.txt { font-size: var(--t-2xs); width: 30px; height: auto; padding: 5px 0; letter-spacing: .02em; }
 .zb:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
 .zb:disabled { opacity: .4; cursor: default; }
-.zlvl { position: absolute; left: 8px; top: 8px; font-family: var(--font-num); background: rgb(var(--bg-rgb) / .8); border-radius: 6px; padding: 1px 6px; }
+.zlvl { position: absolute; left: 8px; top: 8px; font-family: var(--font-num); background: rgb(var(--bg-rgb) / .8); border-radius: var(--r-sm); padding: 1px 6px; }
 
 .skeleton { padding: 26px 2px; text-align: center; border: 1px dashed var(--line); border-radius: var(--radius-s); background: var(--panel-2); }
 .legend { flex-wrap: wrap; gap: 10px; margin-top: 8px; align-items: center; }

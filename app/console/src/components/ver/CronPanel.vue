@@ -231,17 +231,20 @@ function dash(v: unknown) {
 
 <style scoped>
 .cron { display: flex; flex-direction: column; gap: 9px; }
-.switchline { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
-.ttl { margin: 10px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; }
+.switchline { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-xs);
+  padding: 8px 0; border: 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; }
+.ttl { margin: 10px 0 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; }
-.pc { color: var(--muted); font-size: 11px; margin-left: 4px; }
+.pc { color: var(--muted); font-size: var(--t-2xs); margin-left: 4px; }
 .gen .field { max-width: 110px; }
 .gen .hh { max-width: 62px; text-align: center; }
 .mono { font-family: var(--font-num); }
 .errtext { color: var(--bad); }
-button.sm { padding: 4px 10px; font-size: 12px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .log { display: flex; flex-direction: column; gap: 3px; }
-.log .ok { color: var(--ok); font-size: 12px; }
-.log .no { color: var(--bad); font-size: 12px; word-break: break-all; }
+.log .ok { color: var(--ok); font-size: var(--t-xs); }
+.log .no { color: var(--bad); font-size: var(--t-xs); word-break: break-all; }
 </style>

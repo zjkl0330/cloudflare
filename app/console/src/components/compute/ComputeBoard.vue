@@ -260,9 +260,9 @@ function open(r: BoardRow, c?: string) {
   padding: 10px 11px; background: var(--bg);
 }
 .bl { font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em; }
-.bn { font-family: var(--font-num); font-size: 20px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em;
+.bn { font-family: var(--font-num); font-size: var(--t-lg); line-height: 1.2; font-weight: 700; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; }
-.bn.small-num { font-size: 16px; }
+.bn.small-num { font-size: var(--t-md); }
 .bs {
   font-size: var(--t-2xs); color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -282,9 +282,9 @@ function open(r: BoardRow, c?: string) {
 .brow:first-child { border-top: 0; }
 .brow:hover { background: var(--panel-2); }
 .bp {
-  flex: none; width: 22px; height: 22px; border-radius: 6px;
+  flex: none; width: 22px; height: 22px; border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-num); font-size: 10.5px; font-weight: 700;
+  font-family: var(--font-num); font-size: var(--t-2xs); font-weight: 700;
   color: var(--muted); background: var(--bg); border: 1px solid var(--line);
 }
 .bp.worker { color: var(--accent); border-color: var(--accent-dim); }
@@ -296,7 +296,7 @@ function open(r: BoardRow, c?: string) {
 .bname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 合并模式的账号标：与「已部署」同一行高，窄屏也不压名称 */
 .bacc {
-  flex: none; max-width: 88px; padding: 0 5px; border: 1px solid var(--line); border-radius: 5px;
+  flex: none; max-width: 88px; padding: 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm);
   color: var(--muted); background: var(--panel-2); font-size: var(--t-2xs); font-weight: 400;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -314,12 +314,12 @@ function open(r: BoardRow, c?: string) {
 .br { display: flex; align-items: center; gap: 6px; flex: none; }
 .bacts { display: inline-flex; gap: 2px; }
 .blk {
-  border: 0; background: none; padding: 2px 4px; border-radius: 6px;
+  border: 0; background: none; padding: 2px 4px; border-radius: var(--r-sm);
   font: inherit; font-size: var(--t-2xs); color: var(--muted);
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }
 .blk:hover { color: var(--accent); background: var(--panel-2); }
-.bchev { color: var(--muted); font-size: 18px; line-height: 1; }
+.bchev { color: var(--muted); font-size: var(--t-lg); line-height: 1; }
 
 @media (max-width: 420px) {
   /* 窄屏把动作收进第二行，避免把名称挤成省略号 */

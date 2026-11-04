@@ -762,7 +762,7 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 /* 工具栏：ghx 的紧凑分段（一体式底槽 + 选中实底），右侧只留数据年龄 */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
 .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
-.seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: background .12s, color .12s; }
+.seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer; transition: background .12s, color .12s; }
 .seg-b:hover { color: inherit; }
 .seg-b.on { background: var(--accent); color: var(--on-accent, #fff); font-weight: 600; }
 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -799,7 +799,7 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 .deep-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .deep-t { font-size: var(--t-sm); font-weight: 650; }
 .deep-s { font-size: var(--t-2xs); color: var(--muted); }
-.deep-a { margin-left: auto; font-size: 18px; color: var(--muted); line-height: 1; }
+.deep-a { margin-left: auto; font-size: var(--t-lg); color: var(--muted); line-height: 1; }
 
 /* 图表卡里的「展开更多」：跟别处列表按钮同一语汇，不抢主行动 */
 .fold-more { margin-top: 8px; }

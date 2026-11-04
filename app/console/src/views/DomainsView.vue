@@ -871,7 +871,7 @@ async function confirmSheet() {
 .zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 250px; max-width: 86vw;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px; }
 .zopt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 9px; border: 0;
-  border-radius: 6px; background: none; color: inherit; font-size: var(--t-sm); cursor: pointer; text-align: left; }
+  border-radius: var(--r-sm); background: none; color: inherit; font-size: var(--t-sm); cursor: pointer; text-align: left; }
 .zopt:hover { background: var(--panel-2); }
 .zopt.on { background: var(--panel-2); font-weight: 600; color: var(--accent); }
 /* 合并模式的站点清单按账号分组：组头是账号名，小一号、不抢站点名 */

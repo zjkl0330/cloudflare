@@ -85,12 +85,12 @@ function infer(d: any): { zoneId: string; zoneName: string; type: string; name: 
 
 <style scoped>
 .wiz { display: flex; flex-direction: column; gap: 10px; }
-.disc { margin: 0; font-size: 12px; line-height: 1.6; color: var(--warn); background: rgb(var(--warn-rgb) / .08); border-left: 3px solid var(--warn); border-radius: 6px; padding: 8px 10px; }
+.disc { margin: 0; font-size: var(--t-xs); line-height: 1.6; color: var(--warn); background: rgb(var(--warn-rgb) / .08); border-left: 3px solid var(--warn); border-radius: var(--r-sm); padding: 8px 10px; }
 .disc code { font-family: var(--font-num); }
-.row2 { background: var(--panel); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.row2 { background: var(--panel); padding: 10px 2px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--line-soft); }
 .lead { min-width: 0; }
-.host { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tiny { font-size: 11px; }
+.host { font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tiny { font-size: var(--t-2xs); }
 .mono { font-family: var(--font-num); }
 .badge.live { color: var(--ok); border-color: rgb(var(--ok-rgb) / .4); }
 </style>

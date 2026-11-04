@@ -312,14 +312,16 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
 </template>
 
 <style scoped>
-.switchline { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); margin-bottom: 8px; }
+.switchline { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-xs);
+  padding: 8px 0; border: 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; margin-bottom: 8px; }
 .kfind { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .kfind input {
-  max-width: 260px; padding: 7px 10px; border-radius: 8px; font-size: 12px;
+  max-width: 260px; padding: 7px 10px; border-radius: var(--r-sm); font-size: var(--t-xs);
   appearance: none; -webkit-appearance: none;
 }
 .kfind input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
-table { width: 100%; font-size: 11px; border-collapse: collapse; }
-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
-table td { padding: 4px 8px; border-bottom: 1px solid var(--border-light); }
+table { width: 100%; font-size: var(--t-xs); border-collapse: collapse; }
+table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+table td { padding: 4px 8px; border-bottom: 1px solid var(--line-soft); }
 </style>

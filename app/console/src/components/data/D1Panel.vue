@@ -286,18 +286,18 @@ async function copyContent(text: string) {
 <style scoped>
 textarea.field {
   width: 100%; box-sizing: border-box;
-  border: 1px solid var(--border); border-radius: 6px; padding: 8px;
-  background: var(--input-bg); color: var(--text); font-family: var(--font-num);
+  border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px;
+  background: var(--input-bg); color: var(--text); font-family: var(--font-num); font-size: var(--t-xs);
 }
-table { width: 100%; font-size: 11px; border-collapse: collapse; }
-table th { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); background: var(--panel-2); }
-table td { padding: 3px 6px; border-bottom: 1px solid var(--border-light); }
+table { width: 100%; font-size: var(--t-xs); border-collapse: collapse; }
+table th { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+table td { padding: 3px 6px; border-bottom: 1px solid var(--line-soft); }
 
 /* 表名做成可点的胶囊：一行能塞三四个，比一屏只放得下 6 行的列表省地方 */
 .tbls { display: flex; flex-wrap: wrap; gap: 5px; }
 .tbl {
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
-  color: var(--fg-2); font-family: var(--font-num); font-size: 11.5px; padding: 4px 9px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-pill);
+  color: var(--fg-2); font-family: var(--font-num); font-size: var(--t-2xs); padding: 4px 9px; cursor: pointer;
 }
 .tbl.on { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / .09); }
 </style>

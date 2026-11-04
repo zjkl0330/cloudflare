@@ -145,8 +145,8 @@ function human(v: number): string {
 .mt { position: relative; }
 .mt :deep(.card) { margin-bottom: 0; }
 .mt :deep(.card > h3) { padding-right: 24px; }
-.unit { color: var(--muted); font-size: 11px; margin-top: 6px; font-family: var(--font-num); opacity: .8; }
-.delta { display: flex; gap: 6px; align-items: baseline; margin-top: 5px; font-size: 12px;
+.unit { color: var(--muted); font-size: var(--t-2xs); margin-top: 6px; font-family: var(--font-num); opacity: .8; }
+.delta { display: flex; gap: 6px; align-items: baseline; margin-top: 5px; font-size: var(--t-2xs);
   font-family: var(--font-num); font-variant-numeric: tabular-nums; line-height: 1.35; word-break: break-word; }
 .delta.up { color: var(--ok); }
 .delta.down { color: var(--bad); }
@@ -154,16 +154,16 @@ function human(v: number): string {
 .delta.muted { color: var(--muted); opacity: .85; }
 .delta.warn { color: var(--warn); }
 /* 「口径」是这一格唯一允许点开看解释的地方：默认不占面，点开才多一行 */
-.cal { background: none; border: 0; padding: 0; margin-top: 4px; font: inherit; font-size: 11px;
+.cal { background: none; border: 0; padding: 0; margin-top: 4px; font: inherit; font-size: var(--t-2xs);
   color: var(--muted); opacity: .8; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .cal:hover, .cal:focus-visible { color: var(--accent); }
-.cal-x { margin-top: 4px; font-size: 11.5px; line-height: 1.5; color: var(--muted);
+.cal-x { margin-top: 4px; font-size: var(--t-xs); line-height: 1.5; color: var(--muted);
   border-left: 2px solid var(--line); padding-left: 8px; }
 .x {
   position: absolute; top: 8px; right: 8px; z-index: 2;
   width: 22px; height: 22px; line-height: 18px; padding: 0;
   background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
-  border-radius: 6px; font-size: 15px;
+  border-radius: var(--r-sm); font-size: var(--t-md);
 }
 .x:hover { color: var(--fg); border-color: var(--line); background: var(--panel-3); }
 </style>

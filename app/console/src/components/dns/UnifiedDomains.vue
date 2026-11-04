@@ -178,17 +178,17 @@ const pageHost = (d: any) => String(d?.name ?? d?.domain ?? d?.hostname ?? "");
 </template>
 
 <style scoped>
-.ud { display: flex; flex-direction: column; gap: 1px; background: var(--line); border-radius: var(--radius); overflow: hidden; }
-.urow { background: var(--panel); padding: 11px 13px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.ud { display: flex; flex-direction: column; gap: 1px; background: var(--line-soft); border-radius: var(--r); overflow: hidden; }
+.urow { background: var(--panel); padding: 10px 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
 .urow.tap { cursor: pointer; }
 .urow.na { opacity: .95; }
 /* 修饰类叫 subrow 不叫 sub：全局顶栏有一条 .sub（nowrap + max-width:55%），
    同名会把这一行拽成不换行的横条（10-11 截图里那行溢出就是这么来的）。 */
 .urow.subrow { background: var(--panel-2); }
 .lead { flex: 1 1 auto; min-width: 0; }
-.host { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.host { font-size: var(--t-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .host .badge { margin-left: 6px; }
-.kind { color: var(--muted); font-size: 12px; text-align: right; flex: none; max-width: 34%; overflow: hidden; text-overflow: ellipsis; }
+.kind { color: var(--muted); font-size: var(--t-2xs); text-align: right; flex: none; max-width: 34%; overflow: hidden; text-overflow: ellipsis; }
 .badge.blue { color: var(--pending-ink); border-color: rgb(var(--pending-rgb) / .45); background: rgb(var(--pending-rgb) / .1); }
 .badge.live { color: var(--ok); border-color: rgb(var(--ok-rgb) / .4); }
 /* 行尾的复制键：行的主体已经改成"跳到那个资源"，复制让位成一个小键 */

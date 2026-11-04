@@ -106,7 +106,7 @@ const consequence = computed(() => {
   margin: 0 auto 2px; flex: none;
 }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.sheet-head h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.sheet-head h3 { margin: 0; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
 .sheet-x {
   flex: none; height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--panel-2); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;

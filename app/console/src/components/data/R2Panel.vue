@@ -97,7 +97,7 @@ const bucketFold = useFold(() => shownBuckets.value);
       筛完 {{ buckets.data.length }} 个里没有匹配的（是筛不到，不是账号里没有）。
     </div>
     <div v-else-if="!buckets.err && buckets.data" class="empty">这个账号里没有 R2 存储桶（不是没取到）</div>
-    <button class="ghost" style="margin-top: 8px; font-size: 12px" v-if="bucketFold.rest" @click="bucketFold.open = !bucketFold.open">
+    <button class="ghost" style="margin-top: 8px; height: 28px; padding: 0 10px; font-size: var(--t-2xs)" v-if="bucketFold.rest" @click="bucketFold.open = !bucketFold.open">
       {{ bucketFold.label }}
     </button>
 

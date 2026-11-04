@@ -93,7 +93,7 @@ const search = defineModel<string>("search", { default: "" });
 .pane-h {
   display: flex; align-items: center; gap: 8px; padding: 9px 11px 9px 14px;
   background: var(--panel-2); border-bottom: 1px solid var(--line-soft);
-  font-size: 12px; color: var(--muted); letter-spacing: .02em;
+  font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em;
 }
 .h-t { font-weight: 650; color: var(--fg-2); }
 .ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -109,8 +109,8 @@ const search = defineModel<string>("search", { default: "" });
 }
 .find input {
   flex: 1; min-width: 0; background: var(--panel-2); color: var(--fg);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px;
-  font-family: inherit; font-size: 12px; outline: none; appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--line); border-radius: var(--r-sm); padding: 6px 9px;
+  font-family: inherit; font-size: var(--t-xs); outline: none; appearance: none; -webkit-appearance: none;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 .find input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgb(var(--accent-rgb) / .18); }
@@ -118,13 +118,13 @@ const search = defineModel<string>("search", { default: "" });
 .find input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
 .find .clr {
   flex: none; background: none; border: 0; color: var(--muted); font-family: inherit;
-  font-size: 11px; padding: 3px 2px; cursor: pointer;
+  font-size: var(--t-2xs); padding: 3px 2px; cursor: pointer;
 }
 .find .clr:hover { color: var(--accent); }
 
 .back {
   display: none; background: none; border: 0; color: var(--accent); font-family: inherit;
-  font-size: 13px; padding: 0 4px 0 0; cursor: pointer; flex: none;
+  font-size: var(--t-xs); padding: 0 4px 0 0; cursor: pointer; flex: none;
 }
 
 /* 窄屏：一屏只给一栏，选完自动进右栏，右栏顶部出返回 —— 见文件头"防串号"那段 */

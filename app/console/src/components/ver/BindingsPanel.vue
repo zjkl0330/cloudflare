@@ -322,15 +322,18 @@ const noBindings = computed(() => !props.loading && !props.err && (props.binding
 <style scoped>
 .bind { display: flex; flex-direction: column; gap: 10px; }
 .cat { display: flex; flex-direction: column; gap: 4px; }
-.ttl { margin: 6px 0 0; font-size: 12px; color: var(--muted); font-weight: 600; }
+.ttl { margin: 6px 0 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .mono { font-family: var(--font-num); }
 .errtext { color: var(--bad); }
-button.sm { padding: 4px 10px; font-size: 12px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .gen { flex-wrap: wrap; gap: 6px; }
 .gen .field { max-width: 150px; }
-.addbox { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); display: flex; flex-direction: column; gap: 6px; }
+/* 添加区用发丝线分节，不再套描边盒 */
+.addbox { padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; display: flex; flex-direction: column; gap: 6px; }
 .log { display: flex; flex-direction: column; gap: 3px; }
-.log .ok { color: var(--ok); font-size: 12px; }
-.log .no { color: var(--bad); font-size: 12px; word-break: break-all; }
+.log .ok { color: var(--ok); font-size: var(--t-xs); }
+.log .no { color: var(--bad); font-size: var(--t-xs); word-break: break-all; }
 </style>

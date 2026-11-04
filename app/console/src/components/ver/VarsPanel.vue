@@ -307,17 +307,20 @@ function cancelWrite() {
 <style scoped>
 .vars { display: flex; flex-direction: column; gap: 12px; }
 .block { display: flex; flex-direction: column; gap: 6px; }
-.ttl { margin: 0; font-size: 12px; color: var(--muted); font-weight: 600; }
+.ttl { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .mono { font-family: var(--font-num); }
 .errtext { color: var(--bad); }
-button.sm { padding: 4px 10px; font-size: 12px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
-.editbox { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); display: flex; flex-direction: column; gap: 8px; }
-.vrow { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
-.ta { font-family: var(--font-num); font-size: 12px; resize: vertical; }
+/* 编辑区不另起一只描边盒：一条发丝线跟上面的名单切开 */
+.editbox { padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; display: flex; flex-direction: column; gap: 8px; }
+.vrow { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
+.ta { font-family: var(--font-num); font-size: var(--t-xs); resize: vertical; }
 .gen { flex-wrap: wrap; gap: 6px; }
 .gen .field { max-width: 180px; }
 .log { display: flex; flex-direction: column; gap: 3px; }
-.log .ok { color: var(--ok); font-size: 12px; }
-.log .no { color: var(--bad); font-size: 12px; word-break: break-all; }
+.log .ok { color: var(--ok); font-size: var(--t-xs); }
+.log .no { color: var(--bad); font-size: var(--t-xs); word-break: break-all; }
 </style>

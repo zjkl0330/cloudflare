@@ -67,7 +67,7 @@ watch(reloadTick, () => { reloadKey.value++; });
   background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px;
 }
 .seg-b {
-  background: none; border: 0; border-radius: 6px; color: var(--fg-2, inherit);
+  background: none; border: 0; border-radius: var(--r-sm); color: var(--fg-2, inherit);
   padding: 6px 4px; font-size: var(--t-xs); font-family: inherit;
   transition: color .12s ease, background .12s ease;
 }

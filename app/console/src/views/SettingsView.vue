@@ -773,7 +773,7 @@ async function clearGitTok(p: GitPlatform) {
     <!-- ============ 写闸门 ============ -->
     <div class="card wide">
       <h3>写操作（两道闸门）</h3>
-      <div class="item" style="border-radius: 8px">
+      <div class="item" style="border-radius: var(--r-sm)">
         <div class="k">
           本机写开关
           <div class="small muted">{{ allowWrites ? "已打开：写请求会从这台设备发出" : "关着（默认）：写请求不出这台设备" }}</div>
@@ -783,7 +783,7 @@ async function clearGitTok(p: GitPlatform) {
       </div>
 
       <template v-if="confirmOpenWrites && !allowWrites">
-        <div class="small" style="margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px">
+        <div class="small" style="margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-sm)">
           打开后，<b>DNS 新增 / 修改 / 删除</b> 与 <b>清缓存</b> 会<b>真的作用于你选定的 Cloudflare 账号</b>
           （当前：{{ gw.config.accountName || (gw.config.account ? gw.config.account.slice(0, 8) + "…" : "网关默认账号") }}）。
           每个动作发出前仍会回显完整请求并要求确认。
@@ -865,7 +865,7 @@ async function clearGitTok(p: GitPlatform) {
 .set > .card { margin-bottom: 0; }
 .set > .wide :deep(.card) { margin-bottom: 0; }
 .opt { margin-bottom: 12px; }
-.oauth-pick { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.oauth-pick { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-sm); }
 /* 账号行：多了「改名」按钮，窄屏要能换行；编辑态里 .k 得放得下输入框与提示文字
    （全局 .item .k 是 nowrap + 省略号，那是给纯展示行写的，这里覆盖掉） */
 .accitem { flex-wrap: wrap; align-items: flex-start; }
