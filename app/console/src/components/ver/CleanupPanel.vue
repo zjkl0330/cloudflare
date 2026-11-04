@@ -342,17 +342,18 @@ function cancelBatch() {
 .keep input { width: 84px; }
 .errtext { color: var(--bad); }
 .warnline { color: var(--warn); }
-.switchline { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); }
-.wsec { border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: var(--panel); }
+.switchline { display: flex; flex-direction: column; gap: 3px; font-size: var(--t-xs); padding: 8px 10px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); background: var(--panel-2); }
+/* 组与组之间只留发丝线，不再套第二层描边盒 */
+.wsec { border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; padding: 10px 0; background: transparent; }
 .whead { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
 .cand { gap: 10px; align-items: flex-start; }
 .cand.off { opacity: .55; }
 .cand .k { display: block; }
 .block { display: block; white-space: normal; -webkit-line-clamp: unset; }
-.batchbar { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding-top: 6px; border-top: 1px dashed var(--line); }
+.batchbar { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding-top: 8px; border-top: 1px solid var(--line-soft); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 button:disabled { opacity: .45; }
 .log { display: flex; flex-direction: column; gap: 3px; }
-.log .ok { color: var(--ok); font-size: 12px; }
-.log .no { color: var(--bad); font-size: 12px; word-break: break-all; }
+.log .ok { color: var(--ok); font-size: var(--t-xs); }
+.log .no { color: var(--bad); font-size: var(--t-xs); word-break: break-all; }
 </style>

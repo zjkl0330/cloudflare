@@ -752,32 +752,33 @@ const notesOpen = ref(false);
 </template>
 
 <style scoped>
-/* 合并视图的状态条：账号数 + 进度 + 逐账号错误，都在首屏顶部说清 */
-.aggbar { border: 1px solid var(--accent-dim); border-radius: 12px; padding: 9px 11px;
-  margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+/* 合并视图的状态条：与域名/计算页同一条强调色左轨，不再包一整只描边盒 */
+.aggbar { border: 0; border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: 13px; font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
-button.sm { padding: 4px 10px; font-size: 12px; }
-/* 工具栏：时间窗分段控制（一体式分段，选中实底）+ 数据年龄 + 刷新 */
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+/* 工具栏：ghx 的紧凑分段（一体式底槽 + 选中实底），右侧只留数据年龄 */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-.seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
-.seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: background .12s, color .12s; }
+.seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
+.seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: background .12s, color .12s; }
 .seg-b:hover { color: inherit; }
 .seg-b.on { background: var(--accent); color: var(--on-accent, #fff); font-weight: 600; }
 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.age { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* ---------- 状态条（替掉原来那张常驻状态卡）：一行，点开才看详情 ---------- */
+.age { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ---------- 状态条：一行 + 左侧状态轨，点开才看详情 ---------- */
 .statline {
   display: flex; align-items: center; gap: 8px; width: 100%;
   margin: 2px 0 10px; padding: 9px 11px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--muted); border-radius: var(--r-sm);
   text-align: left; font: inherit; color: var(--fg-2); cursor: pointer;
 }
-.statline.lv-ok { border-color: rgb(var(--ok-rgb) / .3); }
-.statline.lv-warn { border-color: rgb(var(--warn-rgb) / .38); }
-.statline.lv-bad { border-color: rgb(var(--bad-rgb) / .42); }
-.sd { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--muted); }
+.statline.lv-ok { border-left-color: var(--ok); }
+.statline.lv-warn { border-left-color: var(--warn); }
+.statline.lv-bad { border-left-color: var(--bad); }
+.sd { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
 .lv-ok .sd { background: var(--ok); }
 .lv-warn .sd { background: var(--warn); }
 .lv-bad .sd { background: var(--bad); }
@@ -786,38 +787,36 @@ button.sm { padding: 4px 10px; font-size: 12px; }
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sa { flex: none; font-size: var(--t-2xs); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ---------- 二级页入口（补充指标 + 下钻） ---------- */
+/* ---------- 二级页入口（补充指标 + 下钻）：一行，不是一张浮起来的卡 ---------- */
 .deep {
   display: flex; align-items: center; gap: 10px; margin-top: 12px;
-  padding: 12px 14px; border-radius: 16px;
+  padding: 11px 12px; border-radius: var(--r-sm);
   background: var(--panel); border: 1px solid var(--line-soft);
   color: var(--fg); text-decoration: none;
-  box-shadow: var(--e-soft);
-  transition: border-color .16s ease, transform .2s ease;
+  transition: border-color .16s ease;
 }
-.deep:hover { border-color: var(--accent-dim); transform: translateY(-1px); }
+.deep:hover { border-color: var(--accent-dim); }
 .deep-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .deep-t { font-size: var(--t-sm); font-weight: 650; }
 .deep-s { font-size: var(--t-2xs); color: var(--muted); }
-.deep-a { margin-left: auto; font-size: 20px; color: var(--muted); line-height: 1; }
+.deep-a { margin-left: auto; font-size: 18px; color: var(--muted); line-height: 1; }
 
 /* 图表卡里的「展开更多」：跟别处列表按钮同一语汇，不抢主行动 */
 .fold-more { margin-top: 8px; }
 .picks { margin-top: 4px; }
 .tiles { margin-bottom: 4px; }
 
-/* ---------- 主表盘（2026-10-25）：一屏只有一个"主读数"，44px 起 ----------
-   和副表盘的区别只在字号与留白，不动颜色：这套界面的颜色已经被四态轨占满了，
-   再给主表盘上色会让"橙 = 有真数"这条编码失效。 */
+/* ---------- 主表盘：一屏只有一个"主读数"，44px 起 ----------
+   扁平：10 圆角 + 发丝线，不再用软投影把卡片从底面上抬起来。 */
 .dial {
   position: relative; background: var(--panel);
-  border-radius: 20px; padding: 14px 16px 10px; margin-bottom: 12px;
-  box-shadow: var(--e-soft), 0 0 0 1px var(--line-soft);
+  border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  padding: 14px 14px 12px; margin-bottom: 12px;
   overflow: hidden;
 }
 /* 主表盘不画左沿轨道：它本身就是"有数"，那道 2px 留给分块数据 */
 .dial-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.dial-h h3 { margin: 0; font-size: var(--t-xs); color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+.dial-h h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 .dial-at { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dial-v { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; }
 /* clamp：320px 窄屏上 "1,234,567" 用 44px 会溢出，按视口收，上限仍是 44 */
@@ -846,12 +845,14 @@ button.sm { padding: 4px 10px; font-size: 12px; }
     overflow: visible; scroll-snap-type: none;
   }
 }
-/* 「口径与说明」：介绍类的话都住在这里，默认收起，所以它不能长得像一块数据 */
-.notes { margin: 12px 2px 0; border: 1px solid var(--line-soft); border-radius: var(--radius-s); background: var(--panel-2); }
+/* 「口径与说明」：介绍类的话都住在这里，默认收起；用眉题 + 发丝线，不摆成第二块数据 */
+.notes { margin: 12px 0 0; border: 0; border-top: 1px solid var(--line-soft); background: transparent; }
 .notes-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%;
-  padding: 9px 11px; background: none; border: 0; color: var(--fg-2); font-size: 12px; text-align: left; cursor: pointer; }
-.notes-h .tw { font-size: 11px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none; }
-.notes-b { padding: 0 11px 10px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+  padding: 9px 2px; background: none; border: 0; color: var(--muted); font-size: var(--t-2xs); text-align: left; cursor: pointer;
+  font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.notes-h .tw { font-size: var(--t-2xs); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none;
+  font-weight: 400; letter-spacing: 0; text-transform: none; }
+.notes-b { padding: 0 2px 10px; font-size: var(--t-xs); line-height: 1.6; color: var(--muted); }
 .notes-b .n { margin-top: 6px; padding-left: 9px; border-left: 2px solid var(--line); }
 .under { margin-top: 6px; }
 </style>

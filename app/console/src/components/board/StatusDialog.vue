@@ -67,8 +67,7 @@ const WORD: Record<string, string> = { ok: "正常", warn: "警告", bad: "严�
 }
 .dlg {
   width: 100%; max-width: 400px;
-  background: var(--panel); border-radius: 20px; padding: 16px 17px 14px;
-  box-shadow: var(--e-2);
+  background: var(--panel); border-radius: var(--r-lg); padding: 14px 15px 12px;
   border: 1px solid var(--line);
 }
 /* 只染边与标题，不整块铺色：弹窗里要读文字，铺满红底会让长句变难读 */
@@ -76,15 +75,16 @@ const WORD: Record<string, string> = { ok: "正常", warn: "警告", bad: "严�
 .dlg.bad { border-color: rgb(var(--bad-rgb) / .5); }
 .hd { display: flex; align-items: center; gap: 8px; }
 .bulb { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--muted); }
-.warn .bulb { background: var(--warn); box-shadow: 0 0 0 4px rgb(var(--warn-rgb) / .14), 0 0 8px rgb(var(--warn-rgb) / .7); }
-.bad .bulb { background: var(--bad); box-shadow: 0 0 0 4px rgb(var(--bad-rgb) / .16), 0 0 8px rgb(var(--bad-rgb) / .75); }
-.ok .bulb { background: var(--ok); box-shadow: 0 0 0 4px rgb(var(--ok-rgb) / .14), 0 0 8px rgb(var(--ok-rgb) / .7); }
+.warn .bulb { background: var(--warn); }
+.bad .bulb { background: var(--bad); }
+.ok .bulb { background: var(--ok); }
 .word { font-size: var(--t-base); font-weight: 700; letter-spacing: .04em; }
 .warn .word { color: var(--warn); }
 .bad .word { color: var(--bad); }
 .ok .word { color: var(--ok); }
 .unknown .word { color: var(--muted); }
-.ttl { margin-left: auto; font-size: var(--t-2xs); color: var(--muted); letter-spacing: .06em; }
+.ttl { margin-left: auto; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .msg { margin: 10px 0 0; font-size: var(--t-sm); line-height: 1.6; color: var(--fg-2); }
 .rulesBtn {
   margin-top: 9px; padding: 0; border: 0; background: none; font: inherit;
@@ -92,7 +92,7 @@ const WORD: Record<string, string> = { ok: "正常", warn: "警告", bad: "严�
   text-decoration: underline; text-underline-offset: 3px;
 }
 .rulesBtn:hover { color: var(--accent); }
-.rules { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--line); font-size: var(--t-xs); color: var(--muted); }
+.rules { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line-soft); font-size: var(--t-xs); color: var(--muted); }
 .rules .own { color: var(--fg-2); margin-bottom: 5px; }
 .rules ul { margin: 0; padding-left: 17px; }
 .rules li { margin: 3px 0; }

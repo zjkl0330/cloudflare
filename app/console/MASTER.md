@@ -55,49 +55,48 @@
 
 命名 → 值（`--*-rgb` 存三元组；实色档已按「当文字用 ≥4.5:1、白字压其上 ≥4.5:1」重挑）：
 
-| Token | Light RGB | 用途 |
+| Token | Light 值 | 用途 |
 |---|---|---|
-| `--bg` | 255 255 255 | 页面底 |
-| `--bg-2` | 247 247 247 | 顶/底栏落点（比面板暗一档）|
-| `--panel` | 255 255 255 | 卡片（与页面同白，靠描边+阴影分开）|
-| `--panel-2` | 242 242 242 | 输入框/徽章/轨道等「凹进去」的面 |
-| `--panel-3` | 232 232 232 | hover / 焦点这一档 |
-| `--line` | 220 220 220 | 主描边 |
-| `--line-soft` | 235 235 235 | 分隔线/内阴影 |
-| `--fg` | 17 17 17 | 正文 |
-| `--fg-2` | 61 61 61 | 次级标题（比 muted 重一档）|
-| `--muted` | 107 107 107 | 弱化文字/说明 |
+| `--bg` | `#ffffff` | 页面底 |
+| `--bg-2` | `#f6f8fa` | 顶/底栏落点（比页面暗一档）|
+| `--panel` | `#f6f8fa` | 卡片/行卡（与页面靠 1px 发丝线分开，不靠阴影）|
+| `--panel-2` | `#eaeef2` | 输入框/徽章/轨道等「凹进去」的面 |
+| `--panel-3` | `#dfe3e8` | hover / 焦点这一档 |
+| `--line` | `#d0d7de` | 主描边 |
+| `--line-soft` | `#eaeef2` | 分隔线/发丝线 |
+| `--fg` | `#1f2328` | 正文 |
+| `--fg-2` | `#424a53` | 次级标题（比 muted 重一档）|
+| `--muted` | `#656d76` | 弱化文字/说明 |
 | `--accent-rgb` | **168 72 10** | CF 橙（白底可读版）|
-| `--ok-rgb` | **15 122 69** | 正常 |
-| `--warn-rgb` | **138 97 0** | 警告/降级 |
-| `--bad-rgb` | **192 57 43** | 错误/没取到 |
-| `--pending-rgb` | **58 104 173** | 取数中（读数轨 pending 用）|
-| `--rail-empty-rgb` | 143 143 143 | 空态虚线轨（非文本 ≥3:1）|
+| `--ok-rgb` | **26 127 55** | 正常 |
+| `--warn-rgb` | **154 103 0** | 警告/降级 |
+| `--bad-rgb` | **207 34 46** | 错误/没取到 |
+| `--pending-rgb` | **9 105 218** | 取数中（读数轨 pending 用）|
+| `--rail-empty-rgb` | 140 149 159 | 空态虚线轨（非文本 ≥3:1）|
 
 ### 2.3 深色档（`[data-theme="dark"]`，`color-scheme: dark`）
 
-中性档镜像翻转（近黑不是纯黑，靠明度留呼吸）；语义色**回到亮 vivid 版**——
-即现有组件里那批 `rgba(53,196,139 / 230,182,76 / 239,107,107 / 246,130,31 / 74,163,255)`，
-它们本就是为深底设计的。每档仍按**压在深底上当文字 ≥4.5:1** 复核。
+中性档取 ghx 的 GitHub Dark（近黑但不是纯黑）；语义色回到亮 vivid 版，
+仍按**压在深底上当文字 ≥4.5:1** 复核。
 
-| Token | Dark RGB | 说明 |
+| Token | Dark 值 | 说明 |
 |---|---|---|
-| `--bg` | 14 15 17 | 近黑、微冷 |
-| `--bg-2` | 22 24 27 | 顶/底栏 |
-| `--panel` | 22 24 27 | 卡片（比底亮一档）|
-| `--panel-2` | 30 33 38 | 输入/徽章/轨道 |
-| `--panel-3` | 40 44 51 | hover/焦点 |
-| `--line` | 42 46 53 | 主描边 |
-| `--line-soft` | 33 36 41 | 分隔线 |
-| `--fg` | 242 243 245 | 正文 |
-| `--fg-2` | 196 200 206 | 次级 |
-| `--muted` | 139 145 153 | 弱化 |
+| `--bg` | `#0d1117` | 页面底 |
+| `--bg-2` | `#161b22` | 顶/底栏 |
+| `--panel` | `#161b22` | 卡片/行卡（比底亮一档）|
+| `--panel-2` | `#21262d` | 输入/徽章/轨道 |
+| `--panel-3` | `#2b313a` | hover/焦点 |
+| `--line` | `#30363d` | 主描边 |
+| `--line-soft` | `#21262d` | 分隔线/发丝线 |
+| `--fg` | `#e6edf3` | 正文 |
+| `--fg-2` | `#c9d1d9` | 次级 |
+| `--muted` | `#7d8590` | 弱化 |
 | `--accent-rgb` | **246 130 31** | vivid CF 橙 |
-| `--ok-rgb` | **53 196 139** | |
-| `--warn-rgb` | **230 182 76** | |
-| `--bad-rgb` | **239 107 107** | |
-| `--pending-rgb` | **74 163 255** | |
-| `--rail-empty-rgb` | 130 135 142 | 深底虚线轨 |
+| `--ok-rgb` | **63 185 80** | |
+| `--warn-rgb` | **210 153 34** | |
+| `--bad-rgb` | **248 81 73** | |
+| `--pending-rgb` | **47 129 247** | |
+| `--rail-empty-rgb` | 139 148 158 | 深底虚线轨 |
 
 > 派生别名（保持向后兼容，供现网引用旧名的地方过渡）：
 > `--accent-dim`=深一档橙、`--rail-*`、`--bg-elev/--bg-inset`、`--fg-dim`、`--err`、
@@ -118,21 +117,21 @@
 ## §3 字体与字阶
 
 **字体角色**（沿用系统栈，不引第三方 webfont：运维台首屏要快、离线 PWA 要能用）：
-- `--font-ui`：正文与界面（`-apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`）。
-- `--font-num`：**数字与等宽专用**（`ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace`）。
+- `--font-ui`：正文与界面（`-apple-system, "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`）。
+- `--font-num`：**数字与等宽专用**（`"SF Mono", "Noto Sans Mono", ui-monospace, monospace`）。
   所有读数、代码、徽章、单位走它 + `tabular-nums`——跳数时列宽不抖，是运维台读数的基本礼貌。
 
-**字阶（把现有散乱的 11/11.5/12/12.5/13/14/15/16/17/27 收敛成 8 档，禁止再用 0.5px 微差）**：
+**字阶（ghx / Primer 口径，7 档，禁止再用 0.5px 以外的微差）**：
 
 | Token | px | rem(基准16) | 用途 |
 |---|---|---|---|
-| `--t-2xs` | 11 | .6875 | 底栏标签、徽章、轨注 |
-| `--t-xs` | 12 | .75 | meta、说明、副值 |
-| `--t-sm` | 13 | .8125 | 列表正文、次级 |
-| `--t-base` | 15 | .9375 | 页面正文（body 默认）|
-| `--t-md` | 16 | 1.0 | 品牌字、行卡标题 |
-| `--t-lg` | 20 | 1.25 | 区块大标 |
-| `--t-xl` | 27 | 1.6875 | 指标瓦片主数值（`--font-num` + 700）|
+| `--t-2xs` | 10.5 | .65625 | 徽章、轨注、极弱元信息 |
+| `--t-xs` | 11.5 | .71875 | meta、说明、副值 |
+| `--t-sm` | 13 | .8125 | 列表正文、控件文字、次级标题 |
+| `--t-base` | 14 | .875 | 页面正文（body 默认）|
+| `--t-md` | 15 | .9375 | 品牌字、行卡标题 |
+| `--t-lg` | 19 | 1.1875 | 区块大标 |
+| `--t-xl` | 26 | 1.625 | 指标瓦片主数值（`--font-num` + 700）|
 
 行高：正文 1.55；数值/标题 1.15–1.3；小字 1.45。字重仅用 400/550/600/650/700 五档，
 不写 500/600 以外的怪值。**标题不做全大写**（中文没有大小写，letter-spacing 只给 eyebrow）。
@@ -147,18 +146,21 @@
 ```
 卡片内边距 `--s-3`；卡片间距 `--s-3`；区块标题上下 `--s-4 / --s-2`；页面左右留白手机 `--s-3`、桌面 `--s-4~--s-6`。
 
-### 4.2 圆角
+### 4.2 圆角（ghx 口径：面板 10 / 控件 8，比旧版收一档）
 ```
---r-sm 8px   （输入/徽章/小按钮）
---r    12px  （行卡/普通卡）
---r-lg 14px  （大卡/浮坞/表格容器）
---r-pill 999px（chip）
+--r-sm 8px   （输入/徽章/小按钮/动作键）
+--r    10px  （行卡/普通卡/抽屉顶角）
+--r-lg 12px  （大卡/浮坞/表格容器）
+--r-pill 999px（chip/胶囊）
 ```
 
-### 4.3 阴影（浅底要轻，深底几乎不用外阴影、改靠 1px 描边 + 微弱内高光分层）
-- 浅色 `--e-1`: `0 1px 2px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.05)`（卡片）
-- 浅色 `--e-2`: 浮层（sheet/浮坞）在 `--e-1` 基础上加 `0 12px 32px rgba(0,0,0,.10)`
-- 深色档：`--e-1/--e-2` 的 alpha 调更低或置 0，改用 `--line` 描边区分层次（深底重投影会显脏）。
+### 4.3 阴影（扁平：面板一律无投影，只有弹层允许一层）
+- `--shadow: none` / `--e-soft: none` / `--neu-dark: transparent`：卡片、行卡、按钮、输入全部靠
+  1px 发丝线（`--line` / `--line-soft`）+ 明度档分层，不叠软投影，也不再用拟物内阴影。
+- `--e-1`: `0 1px 1px rgba(27,31,36,.04)` —— 仅世界地图 tooltip 这类"浮在图上"的小件保留。
+- `--e-2`: `0 8px 24px rgba(140,149,159,.20)` —— 仅底部 sheet / 桌面居中对话框。
+- 深色档：`--e-1` 换 `0 1px 1px rgba(1,4,9,.3)`、`--e-2` 换 `0 12px 28px rgba(1,4,9,.55)`；
+  其余仍是零投影（深底重投影会显脏）。
 
 ### 4.4 焦点环（自绘，浏览器默认那圈在灰底上看不清）
 `:where(button,a,input,select,[tabindex]):focus-visible{ outline:2px solid rgb(var(--accent-rgb)); outline-offset:2px; border-radius:6px; }`
@@ -167,19 +169,24 @@
 
 ## §5 组件状态矩阵（全站统一命名，组件不再各造）
 
-- **按钮**：`button.primary`（橙实底+白字+浅投影）/ `button.ghost`（panel-2 底、line 描边、fg 字）/
-  `button.danger`（橙底白字，确认件里的破坏性动作）/ `:disabled{opacity:.45}`。文案用动词、
+- **按钮**：`button.primary`（橙实底+白字，扁平无投影）/ `button.ghost`（panel-2 底、line 描边、fg 字）/
+  `button.danger`（橙底白字，确认件里的破坏性动作）/ `:disabled{opacity:.45}`。尺寸两档：
+  默认 36px、`button.sm` 28px；均为 `--r-sm` 圆角、无内阴影。文案用动词、
   同一动作全流程同名（"发布"产生的 toast 也写"已发布"）。
-- **输入**：`input.field / select.field`（panel-2 底、line 描边、`--r-sm`、14px、字重继承 body）。
-  配 `label.lbl`（12px muted）。错误态：描边转 `--bad`，下方 `.field-err` 用实色 bad 文字，**不只变红边**（见 §8）。
-- **卡片 / 行卡**：`.card`（渐变 panel + 读数轨）与 `.lrow`（两行文本 + 可展开动作宫格 `.acts`）。
-- **列表**：`.list > .item`（panel 底、hover 转 panel-3、`tap` 可点）。右值 `.v` 走 `--font-num`+tabular，截断省略。
-- **徽章 `.badge`**：panel-2 底 + line 描边 + 11px 等宽；状态徽章用 `.live/.roll/.ok/.warn/.bad/.plan`，
+- **输入**：`input.field / select.field`（panel-2 底、line 描边、`--r-sm`、13–14px、字重继承 body）。
+  配 `label.lbl`（11.5px muted）。错误态：描边转 `--bad`，下方 `.field-err` 用实色 bad 文字，**不只变红边**（见 §8）。
+- **卡片 / 行卡**：`.card`（panel 底 + 读数轨，无渐变/无投影，`--r` 圆角）与 `.lrow`（连续发丝线行：
+  `.rows` 内 `gap:0`、`border-top` + 每行 `border-bottom`，行本身透明、圆角 0、padding `10px 2px`，
+  hover 转 `--panel-2`；两行文本 + 可展开动作宫格 `.acts`）。settings 式的 kv 行同样走发丝线，不再套卡。
+- **列表**：`.list > .item`（透明底、连续发丝线分隔、hover 转 panel-2、`tap` 可点）。右值 `.v` 走 `--font-num`+tabular，截断省略。
+- **徽章 `.badge`**：panel-2 底 + line 描边 + 10.5px 等宽 + `white-space: nowrap`（"生产"这类词不许拆行）；状态徽章用 `.live/.roll/.ok/.warn/.bad/.plan`，
   一律「实色文字 + `rgb(.../.4)` 描边 + `rgb(.../.08)` 底」。**徽章必须带文字**，色相只作冗余编码。
 - **三态/五态容器 `.async`**：`st-data / st-pending / st-empty / st-error / st-partial` → 决定 `--rail`。
   pending 轨走纸（动的就是它），空/部分降级轨用**虚线**，错误用**实线红**。空态文案必须写「为什么是空的」。
 - **骨架/占位**：pending 且无数时，指标瓦片区撑等高（`min-height`），数据回来不跳版。
-- **Toast / 确认件 ConfirmSheet**：`--bg-elev` 面板 + `--e-2`，遮罩 `rgba(0,0,0,.45)`（深底提到 .6）。
+- **Toast / 确认件 ConfirmSheet**：底部 sheet（`--bg-elev` 面板、`--r-lg` 上圆角、`86vh` 上限、
+  顶部 grab 条 `::before`、上沿 1px 发丝线），遮罩 `rgba(0,0,0,.45)`（深底提到 .74）；
+  按钮 36px 扁平，破坏性动作用 accent 实底而非软阴影。桌面居中 `DialogShell` 同一套：10px 圆角 + grab 条 + `--e-2` 一层。
   确认三件套：**点名对象 + 说明后果 + 按钮用动词**。绝不出现「没等结果就报成功」。
 - **读数轨**：见 §0/§2.4，是全站唯一的状态图形原语。
 
@@ -214,7 +221,7 @@
 
 1. **对比度**：正文/数值文字 ≥4.5:1；图标、读数轨、描边等非文本 ≥3:1；两档主题分别复核后才提交。
 2. **不靠颜色单独承载信息**：五态用「色相 + 虚/实线 + 是否走纸 + 文字」四重编码；徽章恒带文字。
-3. **键盘**：所有可交互元素 `:focus-visible` 有 2px 橙环（§4.4）；底栏/左栏导航可 Tab 到达、aria-current 标当前屏。
+3. **键盘**：所有可交互元素 `:focus-visible` 有 2px 强调色环（§4.4，橙 / 换蓝档时转蓝）；底栏/左栏导航可 Tab 到达、aria-current 标当前屏。
 4. **触控目标**：手机档底栏键 ≥44px 高、动作宫格 `.act` ≥40px，满足 24px 最小 + 舒适间距。
 5. **动效**：`prefers-reduced-motion: reduce` 下所有动画/过渡降到 ~0（保留走纸轨的静态色，不停在"取数中"用闪烁替代成文字）。
 6. **实时播报**：`.async` 状态由 pending→data/error 时通过 `aria-live="polite"` announce（只播结论，不刷屏）。
@@ -224,18 +231,23 @@
 
 ---
 
-## §9 迁移计划（把现网搬进本系统）
+## §9 迁移计划（已按 ghx / Primer 口径落地，逐屏验收）
 
-1. **`main.css` token 化**：`:root` 改通道三元组 + 字阶/间距/圆角/阴影 token；所有裸 hex/px 换成 token；
-   `--rail-*`、别名（`--border/--text/...`）改派生。
-2. **新增 `[data-theme="dark"]` 覆盖块**（§2.3 全表）+ `@media prefers-color-scheme` 兜底 + `data-theme=light` 显式档。
-3. **主题挂载逻辑**：`App.vue`/`main.ts` 解析 localStorage/system → `documentElement.dataset.theme`；设置屏加外观三选。
-4. **组件铺底大扫除**：把 ~15 个文件里 `rgba(53,196,139,…)`/`rgba(246,130,31,…)`/`#e0e0e0`/`#bfbfbf` 等
-   字面量逐个换成 `rgb(var(--ok-rgb)/.08)` 这类通道派生（StatusLamp/WorldMap/ConfirmSheet/Dns*/data/*、各 View）。
-5. **字号/间距归一**：散写的 `font-size` 贴到 §3 字阶 token（去掉 11.5/12.5 微差），间距贴 §4.1。
-6. **可访问性核对**：逐 token 跑两档对比度；补 `aria-current`/`aria-live`/`lang`；复核触控目标。
-7. **回归**：`npm run check && npm run check:routes && npm run build && npm run check:pwa`；
-   浅/深两档在 5173 真机各屏过一遍，读数轨五态肉眼可辨。
+> 状态：**已完成**。第 1–4 步（全局主题+外壳 → 计算页/Worker 详情 → Pages 详情 → 域名/看板/深度/令牌/数据库/零信任/设置
+> 与全部弹层组件）均已改到本系统，`npm run check && npm run build && npm run check:routes` 通过；
+> 浅/深两档在 390×844 真机尺寸逐屏截图核对，无横向溢出。
 
-> 红线：迁移期间**不动数据链路、路由、异步判定逻辑**；`.async.st-*` 类名保持稳定；
-> 一次改一档可回滚（先 token 化并跑通浅色，再叠深色），不要把全部改动压在一个不可逆的大提交里。
+1. ✅ **`main.css` token 化**：`:root` 通道三元组 + 字阶/间距/圆角/阴影 token；裸 hex/px 收口；
+   `--rail-*`、别名（`--border/--text/...`）全部派生。
+2. ✅ **`[data-theme="dark"]` 覆盖块**（§2.3 全表）+ `@media prefers-color-scheme` 兜底；`[data-accent="blue"]` 只换强调一族。
+3. ✅ **主题挂载逻辑**：`App.vue`/`main.ts` 解析 localStorage/system → `documentElement.dataset.theme`；设置屏外观三选。
+4. ✅ **组件铺底大扫除**：`rgba(53,196,139,…)`/`rgba(246,130,31,…)`/`#e0e0e0`/`#bfbfbf` 等字面量换成通道派生
+   （StatusLamp/WorldMap/ConfirmSheet/Dns*/data/*、各 View）。
+5. ✅ **字号/间距归一**：`font-size` 贴到 §3 字阶（10.5/11.5/13/14/15/19/26），间距贴 §4.1；
+   拟物内阴影（`--neu-dark`、`--e-soft`）置空，卡片/行卡改连续发丝线。
+6. ✅ **可访问性核对**：两档对比度复核；`aria-current`/`aria-live`/`lang`；触控目标 ≥ 24px（底栏 44+）。
+7. ✅ **回归**：`npm run check && npm run build && npm run check:routes`；
+   浅/深两档在 5173 逐屏过一遍，读数轨五态肉眼可辨，原有功能按钮/弹层/折叠入口全部保留。
+
+> 红线（长期有效）：后续再动观感时**不动数据链路、路由、异步判定逻辑**；`.async.st-*` 类名保持稳定；
+> 一次改一档可回滚，不要把全部改动压在一个不可逆的大提交里。

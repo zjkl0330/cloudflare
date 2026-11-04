@@ -859,67 +859,92 @@ async function confirmSheet() {
 </template>
 
 <style scoped>
-/* 站点切换器：折叠下拉。收起 = 一个带状态点的按钮；展开 = 浮层面板（状态点 + 状态文字） */
+/* 站点切换器：ghx 的下拉 —— 收起是一个 34 高的描边按钮，展开是扁平浮层（无软投影） */
 .zdd { position: relative; min-width: 0; }
-.zbtn { display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border-radius: 10px;
-  border: 1px solid var(--line); background: var(--panel); color: inherit; font-size: 14px; cursor: pointer;
-  max-width: 70vw; transition: border-color .12s; }
+.zbtn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--panel); color: inherit; font-size: var(--t-sm); cursor: pointer;
+  max-width: 72vw; transition: border-color .12s ease, background-color .12s ease; }
 .zbtn:hover, .zbtn[aria-expanded="true"] { border-color: var(--accent); }
 .zname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.chev { font-style: normal; font-size: 10px; color: var(--muted); transition: transform .15s; }
+.chev { font-style: normal; font-size: var(--t-2xs); color: var(--muted); transition: transform .15s ease; }
 .chev.up { transform: rotate(180deg); }
-.zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 260px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px;
-  box-shadow: 0 10px 30px rgb(0 0 0 / .18); }
-.zopt { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border: 0;
-  border-radius: 8px; background: none; color: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 250px; max-width: 86vw;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px; }
+.zopt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 9px; border: 0;
+  border-radius: 6px; background: none; color: inherit; font-size: var(--t-sm); cursor: pointer; text-align: left; }
 .zopt:hover { background: var(--panel-2); }
-.zopt.on { background: var(--panel-2); font-weight: 600; }
+.zopt.on { background: var(--panel-2); font-weight: 600; color: var(--accent); }
 /* 合并模式的站点清单按账号分组：组头是账号名，小一号、不抢站点名 */
 .zgrp { margin-top: 4px; }
-.zgrp-h { padding: 6px 10px 2px; font-size: 11px; color: var(--muted); letter-spacing: .03em; }
+.zgrp-h { padding: 6px 9px 2px; font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em; }
 .zopt-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.zopt-st { font-size: 11px; color: var(--muted); flex: none; }
+.zopt-st { font-size: var(--t-2xs); color: var(--muted); flex: none; }
 .zdot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
-.zdot[data-s="active"] { background: var(--ok, #2f9e5f); }
-.zdot[data-s="pending"] { background: #d29922; }
-.hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-.hd h3 { margin: 0; }
-.editor { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; background: var(--panel-2); }
-.editor h4 { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.zdot[data-s="active"] { background: var(--ok); }
+.zdot[data-s="pending"] { background: var(--warn); }
+
+/* 卡片内头行：标题落到与其它详情页同一档眉题 */
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px;
+  flex-wrap: wrap; }
+.hd h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
+/* 窄屏：眉题独占一行，写开关和两个主行动掉到下一行，避免按钮贴着卡片边缘 */
+@media (max-width: 430px) {
+  .hd { align-items: flex-start; }
+  .hd > .row { width: 100%; justify-content: flex-start; }
+}
+
+/* 表单区不另起一只圆角盒子，用一条发丝线把它跟列表切开 */
+.editor { border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; padding: 10px 0 4px; margin: 10px 0; background: transparent; }
+.editor h4 { margin: 0 0 8px; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .whyline.ok { color: var(--ok); background: rgb(var(--ok-rgb) / .08); border-left-color: var(--ok); }
 .errtext { color: var(--bad); }
-button.sm { padding: 4px 10px; font-size: 12px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .gen { flex-wrap: wrap; gap: 6px; }
 .gen .field { max-width: 280px; }
-/* 一个域名一行：DNS / Worker / Pages / 路由都收在同一张行卡里，不再分三个 tab 重复列 */
-.hlist { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
-.hrow { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+
+/* 折叠区里的工具卡不再各自套一只描边盒：展开后是连续的节，节与节之间一条发丝线 */
+details.grp > .card { margin: 0; padding: 10px 2px; border: 0; border-radius: 0; background: transparent; }
+details.grp > .card::before { display: none; }
+details.grp > .card + .card { border-top: 1px solid var(--line-soft); }
+details.grp > .card:last-of-type { padding-bottom: 12px; }
+/* 折叠区里的名单也拉平：只留发丝线，不再是一个内嵌的圆角列表盒 */
+details.grp .list { border: 0; border-radius: 0; background: transparent; overflow: visible; }
+details.grp .list .item { padding-left: 2px; padding-right: 2px; }
+details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
+
+/* 一个域名一行：DNS / Worker / Pages / 路由都收在同一行里，不再分三个 tab 重复列。
+   行与行之间只留发丝线（不再是每行一只圆角小卡，纸上叠纸） */
+.hlist { display: flex; flex-direction: column; gap: 0; margin-top: 6px; border-top: 1px solid var(--line-soft); }
+.hrow { background: transparent; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: 10px 2px; }
+.hrow:last-child { border-bottom: 0; }
 .hhead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.hname { font-size: 14.5px; font-weight: 650; word-break: break-all; margin-right: 2px; }
+.hname { font-size: var(--t-sm); font-weight: 650; word-break: break-all; margin-right: 2px; }
 .hline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 7px;
-  padding-top: 7px; border-top: 1px dashed var(--line-soft); font-size: 12.5px; }
+  padding-top: 7px; border-top: 1px solid var(--line-soft); font-size: var(--t-xs); }
 .hrow > .hline:first-of-type { border-top: 0; padding-top: 4px; }
 /* 记录行两段式：上行类型 + 值，下行 TTL / 代理 + 动作。长值折两行，卡片高度才一致 */
 .hline.two { flex-direction: column; align-items: stretch; gap: 4px; }
 .hl-top { display: flex; align-items: flex-start; gap: 7px; min-width: 0; }
 .hl-top .hcontent { flex: 1; }
 .hl-bot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.foldbtn { flex: none; font-size: 11.5px; }
+.foldbtn { flex: none; font-size: var(--t-2xs); }
 .hcontent { color: var(--fg-2); min-width: 0; word-break: break-all; max-width: 100%; }
 /* 只折"真的长"的值（默认两行）；短值不加这个类，也不会摆展开按钮 */
 .hcontent.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-/* 合并视图的状态条：账号数 + 进度 + 逐账号错误，都在首屏顶部说清 */
-.aggbar { border: 1px solid var(--accent-dim); border-radius: 12px; padding: 9px 11px;
-  margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+
+/* 合并视图状态条：与看板/计算页同一条强调色左轨，不再包一整只描边盒 */
+.aggbar { border: 0; border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: 13px; font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
 .badge.acctag { color: var(--fg-2); border-color: var(--line); font-family: var(--font-num);
   max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ha { margin-left: auto; display: flex; gap: 5px; flex: none; }
-.harrow { color: var(--muted); font-size: 11.5px; flex: none; }
+.harrow { color: var(--muted); font-size: var(--t-2xs); flex: none; }
 .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .linkbtn:hover { color: var(--fg); }
 .badge.prox { color: var(--accent); border-color: rgb(var(--accent-rgb) / .45); }

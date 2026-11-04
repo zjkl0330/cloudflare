@@ -505,12 +505,13 @@ label.lbl { display: block; font-size: var(--t-xs); color: var(--muted); margin:
 .bar .n { width: 74px; flex: none; text-align: right; color: var(--fg); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 
 /* ---------- 行卡范式（docs/13 §1.2：两行文本 + 可展开动作宫格） ---------- */
-.rows { display: flex; flex-direction: column; gap: 8px; }
-/* 行卡：ghx 的 flat row —— 1px 发丝线 + hover 换面，不位移、不投影。 */
-.lrow { position: relative; background: var(--panel); border: 1px solid var(--line);
-  border-radius: var(--r); padding: 11px 12px; box-shadow: none;
+.rows { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--line-soft); }
+/* 行卡：ghx 的连续列表行 —— 行与行之间只留发丝线，hover 换面，不位移、不投影 */
+.lrow { position: relative; background: transparent; border: 0; border-bottom: 1px solid var(--line-soft);
+  border-radius: 0; padding: 10px 2px; box-shadow: none;
   transition: background-color .16s ease, border-color .16s ease; }
-.lrow:hover { background: var(--panel-2); border-color: var(--line); }
+.lrow:last-child { border-bottom: 0; }
+.lrow:hover { background: var(--panel-2); border-color: var(--line-soft); }
 .lrow .main { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .lrow .tcol { min-width: 0; }
 .lrow .title { font-size: var(--t-sm); font-weight: 600; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

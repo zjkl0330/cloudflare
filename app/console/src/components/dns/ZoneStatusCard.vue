@@ -76,7 +76,7 @@ function copyOne(n: string) { copyText(n, n); }
 <style scoped>
 .zc { display: flex; flex-direction: column; gap: 8px; }
 .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.nm { font-size: 15px; font-weight: 600; word-break: break-all; }
+.nm { font-size: var(--t-md); font-weight: 650; word-break: break-all; }
 .zid { margin: 0; }
 .zid code { font-family: var(--font-num); word-break: break-all; }
 .badge.ok { color: var(--ok); border-color: rgb(var(--ok-rgb) / .4); }
@@ -84,14 +84,16 @@ function copyOne(n: string) { copyText(n, n); }
 .badge.bad { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .badge.muted { color: var(--muted); }
 .badge.plan { color: var(--accent); border-color: rgb(var(--accent-rgb) / .4); }
-.ns { padding: 10px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); color: var(--fg); }
+.ns { padding: 10px 12px; border-radius: var(--r-sm); background: var(--panel-2); border: 1px solid var(--line-soft); color: var(--fg); }
 .ns.off { opacity: .7; }
-.ns-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; margin-bottom: 6px; }
-.ns-h .all { flex: none; font: inherit; font-size: 11.5px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; background: none; color: var(--fg-2); cursor: pointer; }
+.ns-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--t-2xs); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.ns-h .all { flex: none; font: inherit; font-size: var(--t-2xs); height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); color: var(--fg-2); cursor: pointer; letter-spacing: 0; text-transform: none; font-weight: 400; }
 .ns-h .all:hover { border-color: rgb(var(--accent-rgb) / .5); color: var(--accent); }
-.ns-list { display: flex; flex-direction: column; gap: 2px; font-size: 13px; word-break: break-all; }
+.ns-list { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-xs); word-break: break-all; }
 .ns-list .one { display: block; width: 100%; text-align: left; font: inherit; padding: 3px 6px; margin: 0 -6px; border: 0; border-radius: 6px; background: none; color: inherit; cursor: pointer; }
 .ns-list .one:hover { background: rgb(var(--accent-rgb) / .1); color: var(--accent); }
 .copied { margin: 0; }
-.warnline { margin: 0; color: var(--warn); font-size: 12px; }
+.warnline { margin: 0; color: var(--warn); font-size: var(--t-xs); }
 </style>

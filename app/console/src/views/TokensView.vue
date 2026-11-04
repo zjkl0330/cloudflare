@@ -269,7 +269,7 @@ const listEmpty = computed(() => !loading.value && tokens.value?.length === 0 &&
         </div>
 
         <div class="row" style="margin-top: 12px">
-          <button class="ghost" :disabled="loading" @click="loadTokens">{{ loading ? "读取中…" : "刷新列表" }}</button>
+          <button class="ghost sm" :disabled="loading" @click="loadTokens">{{ loading ? "读取中…" : "刷新列表" }}</button>
           <router-link class="chip" to="/settings">回设置</router-link>
         </div>
         <ErrorNote :err="listErr || undefined" />
@@ -379,7 +379,7 @@ const listEmpty = computed(() => !loading.value && tokens.value?.length === 0 &&
           </div>
           <div class="row">
             <button class="chip" :disabled="busy || !allowed" @click="confirmRot = t.id">轮转</button>
-            <button class="chip" :disabled="busy || !allowed" @click="confirmDel = t.id">删除</button>
+            <button class="chip danger" :disabled="busy || !allowed" @click="confirmDel = t.id">删除</button>
           </div>
 
           <!-- 轮转：旧值立刻失效，必须说清后果 -->
@@ -419,12 +419,22 @@ const listEmpty = computed(() => !loading.value && tokens.value?.length === 0 &&
 @media (min-width: 880px) { .tk { grid-template-columns: 1fr 1fr; } .tk > .wide { grid-column: 1 / -1; } }
 .tk > .card { margin-bottom: 0; }
 .plain { border: 0; margin: 0; padding: 0; min-width: 0; }
+/* 分区眉题统一：小一号 + 字距，与 Worker / Pages 详情的节标题同一档 */
 .opt { margin-top: 12px; }
-.opt-h { font-size: var(--t-xs); color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
+.opt-h { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; margin-bottom: 6px; }
 .groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow: auto; }
 .gs { font-size: 10.5px; opacity: .65; margin-left: 4px; }
-.confirm { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
-.body { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: var(--bg-inset, #f7f7f7); font-size: 11.5px; overflow: auto; max-height: 320px; }
-.secret .val { margin: 10px 0; padding: 10px; border-radius: 8px; border: 1px dashed var(--line); word-break: break-all; font-size: 12.5px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+.chip.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .4); }
+.chip.danger:hover:not(:disabled) { border-color: var(--bad); }
+/* 二次确认不是第三只盒子：用一条强调色左轨把它从列表行里拎出来 */
+.confirm { margin-top: 12px; padding: 9px 10px; border: 0; border-left: 3px solid var(--bad);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0; background: var(--panel-2); }
+.body { margin: 8px 0 0; padding: 10px; border: 1px solid var(--line-soft); border-radius: var(--r-sm);
+  background: var(--bg-inset, var(--panel-2)); font-size: 11.5px; overflow: auto; max-height: 320px; }
+/* 明文只出现一次：等宽、可选、发丝边框；虚线会让人以为是占位符 */
+.secret .val { margin: 10px 0; padding: 10px; border-radius: var(--r-sm); border: 1px solid var(--line);
+  background: var(--panel-2); word-break: break-all; font-size: 12.5px; }
 .item { flex-wrap: wrap; }
 </style>

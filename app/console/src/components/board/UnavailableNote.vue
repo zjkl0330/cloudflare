@@ -65,9 +65,11 @@ const ITEMS: Array<{ name: string; why: string; proof: string }> = [
 </template>
 
 <style scoped>
-.list { margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
-.row2 { border-left: 3px solid var(--muted); background: var(--panel-2); border-radius: 8px; padding: 8px 10px; }
+/* 取不到的字段：逐条发丝线列出，别做成一只只彩色小卡 */
+.list { margin: 0; display: flex; flex-direction: column; gap: 0; font-size: var(--t-xs); border-top: 1px solid var(--line-soft); }
+.row2 { border-left: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; background: transparent; padding: 8px 0; }
+.row2:last-child { border-bottom: 0; }
 .row2 dt { color: var(--fg); font-weight: 600; margin-bottom: 3px; }
 .row2 dd { margin: 0; color: var(--muted); line-height: 1.5; }
-.proof { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); opacity: .85; }
+.proof { display: block; margin-top: 4px; font-size: var(--t-2xs); color: var(--muted); opacity: .85; }
 </style>

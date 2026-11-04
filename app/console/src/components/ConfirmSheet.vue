@@ -93,51 +93,61 @@ const consequence = computed(() => {
   position: fixed; inset: 0; background: rgba(0, 0, 0, .45);
   display: flex; align-items: flex-end; justify-content: center; z-index: 60;
 }
+/* 底部抽屉：ghx 口径 —— 10 圆角、发丝线、86vh 上限、顶部 grab 条；不用投影把层抬起来 */
 .sheet {
-  width: 100%; max-width: 640px; max-height: 88vh; overflow: auto;
-  background: var(--bg-elev, #ffffff); color: var(--fg, #111111);
-  border-radius: 14px 14px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+  width: 100%; max-width: 640px; max-height: 86vh; overflow: auto;
+  background: var(--panel); color: var(--fg);
+  border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 10px;
 }
+.sheet::before {
+  content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--line);
+  margin: 0 auto 2px; flex: none;
+}
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.sheet-head h3 { margin: 0; font-size: 16px; }
-.sheet-x { background: none; border: 0; color: var(--fg-dim, #3d3d3d); font-size: 14px; padding: 6px 8px; }
-.sheet-target { margin: 0; font-size: 13px; line-height: 1.6; color: var(--fg-dim, #3d3d3d); }
+.sheet-head h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.sheet-x {
+  flex: none; height: 28px; padding: 0 9px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel-2); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
+}
+.sheet-x:hover { color: var(--fg); border-color: var(--accent-dim); }
+.sheet-target { margin: 0; font-size: var(--t-xs); line-height: 1.6; color: var(--muted); }
 .sheet-cmd {
-  font-size: 12px; padding: 8px 10px; border-radius: 8px;
-  background: var(--bg-inset, #f7f7f7); border: 1px solid var(--line, #dcdcdc); word-break: break-all;
+  font-size: var(--t-2xs); padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--panel-2); border: 1px solid var(--line-soft); word-break: break-all;
 }
-.sheet-fields { display: grid; grid-template-columns: 88px 1fr; gap: 6px 10px; margin: 0; font-size: 13px; }
-.sheet-fields dt { color: var(--fg-dim, #3d3d3d); }
-.sheet-fields dd { margin: 0; word-break: break-all; }
-.sheet-fields dd.wrap { font-size: 11.5px; white-space: normal; }
+.sheet-fields { display: grid; grid-template-columns: 88px 1fr; gap: 0 10px; margin: 0; font-size: var(--t-xs); }
+.sheet-fields dt { color: var(--muted); padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.sheet-fields dd { margin: 0; padding: 6px 0; border-top: 1px solid var(--line-soft); word-break: break-all; }
+.sheet-fields > :first-child, .sheet-fields > :nth-child(2) { border-top: 0; padding-top: 2px; }
+.sheet-fields dd.wrap { font-size: var(--t-2xs); white-space: normal; }
 .mono { font-family: var(--font-num); }
-.sheet-warn { margin: 0; font-size: 12.5px; color: var(--warn, #8a6100); line-height: 1.6; }
-.sheet-type { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--fg-dim, #3d3d3d); }
+/* 后果用左轨提示，别整段染成暖色 */
+.sheet-warn {
+  margin: 0; font-size: var(--t-xs); color: var(--warn); line-height: 1.6;
+  padding: 8px 10px; border-left: 3px solid var(--warn); background: rgb(var(--warn-rgb) / .08);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+.sheet-type { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-xs); color: var(--muted); }
 .sheet-type input {
-  padding: 9px 10px; border-radius: 8px; font-size: 14px;
-  border: 1px solid var(--line, #dcdcdc); background: var(--bg-inset, #f7f7f7); color: inherit;
+  height: 36px; padding: 0 10px; border-radius: var(--r-sm); font-size: var(--t-sm);
+  border: 1px solid var(--line); background: var(--panel-2); color: inherit; font-family: inherit;
 }
+.sheet-type input:focus { outline: none; border-color: var(--accent); }
 .sheet-err {
-  margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--err, #c0392b);
-  padding: 8px 10px; border-radius: 8px; background: rgb(var(--bad-rgb) / .08);
+  margin: 0; font-size: var(--t-xs); line-height: 1.6; color: var(--bad);
+  padding: 8px 10px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  border-left: 3px solid var(--bad); background: rgb(var(--bad-rgb) / .08);
 }
-.sheet-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 2px; }
-.btn { padding: 10px 16px; border-radius: 12px; font-size: 14px; border: none; cursor: pointer; }
-/* 与 main.css 的 Yaya12085 皮肤对齐（scoped 特异性更高，不同步一遍这里就还是旧反馈）：
-   次级键=柔光面白面，确认键=同族但铺强调色 + inset 双向柔光。 */
-.btn.ghost {
-  background: var(--panel); color: var(--fg-dim, #3d3d3d);
-  box-shadow: inset 4px 4px 7px var(--neu-dark), inset -4px -4px 7px var(--panel), 0 0 0 1px var(--line);
-  transition: color .25s ease, box-shadow .3s cubic-bezier(.4, 0, .2, 1), transform .3s cubic-bezier(.4, 0, .2, 1);
+.sheet-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
+.btn {
+  height: 36px; padding: 0 14px; border-radius: var(--r-sm); font-size: var(--t-sm); border: 1px solid transparent;
+  cursor: pointer; font-family: inherit;
 }
-.btn.ghost:hover:not(:disabled) { color: var(--accent); transform: translateY(-2px); box-shadow: inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--panel), 0 6px 14px rgb(0 0 0 / .07), 0 0 0 1px var(--accent); }
-.btn.danger {
-  background: linear-gradient(180deg, var(--accent-hi), var(--accent)); color: var(--on-accent); font-weight: 600;
-  box-shadow: inset 5px 5px 9px rgb(0 0 0 / .14), inset -5px -5px 9px rgb(255 255 255 / .2), 0 0 0 2px var(--bg-elev), 0 8px 18px rgb(var(--accent-rgb) / .18);
-  transition: transform .3s cubic-bezier(.4, 0, .2, 1), box-shadow .3s cubic-bezier(.4, 0, .2, 1);
-}
-.btn.danger:hover:not(:disabled) { transform: translateY(-2px); box-shadow: inset 4px 4px 8px rgb(0 0 0 / .12), inset -4px -4px 8px rgb(255 255 255 / .22), 0 0 0 2px var(--bg-elev), 0 14px 26px rgb(var(--accent-rgb) / .22); }
-.btn.danger:active:not(:disabled) { transform: translateY(0); box-shadow: inset 4px 4px 8px rgb(0 0 0 / .22), inset -4px -4px 8px rgb(255 255 255 / .12), 0 0 0 2px var(--bg-elev); }
+.btn.ghost { background: var(--panel-2); color: var(--fg-2); border-color: var(--line); }
+.btn.ghost:hover:not(:disabled) { border-color: var(--accent-dim); color: var(--fg); }
+.btn.danger { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btn.danger:hover:not(:disabled) { background: var(--accent-hi); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 </style>

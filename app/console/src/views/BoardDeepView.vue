@@ -93,8 +93,8 @@ onMounted(() => { void loadDrill(); });
 
 <template>
   <div>
-    <div class="row" style="margin-bottom: 10px; gap: 10px; align-items: center">
-      <button class="ghost" type="button" @click="nav.push('/board')">← 看板</button>
+    <div class="row subhead">
+      <button class="ghost sm" type="button" @click="nav.push('/board')">← 看板</button>
       <span class="muted small">{{ rangeLabel }} · 补充指标与下钻</span>
     </div>
 
@@ -103,14 +103,14 @@ onMounted(() => { void loadDrill(); });
 
     <div class="card">
       <h3>下钻 Top 20</h3>
-      <div class="row" style="margin-bottom: 8px">
+      <div class="row jn">
         <!-- 点一下就直接查；选中的维度会记住 -->
         <button
           v-for="d in DRILL_DIMS" :key="d.k" class="chip" :class="{ on: dim === d.k }"
           :disabled="drillLoading && dim !== d.k"
           @click="dim = d.k"
         >{{ d.label }}</button>
-        <button class="ghost" :disabled="drillLoading" @click="loadDrill(true)">
+        <button class="ghost sm" :disabled="drillLoading" @click="loadDrill(true)">
           {{ drillLoading ? "查询中…" : "重新查询" }}
         </button>
       </div>
@@ -136,3 +136,16 @@ onMounted(() => { void loadDrill(); });
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 返回行：不重复顶栏已有的页面名，只留"回哪 + 当前时间窗" */
+.subhead { gap: 10px; align-items: center; margin-bottom: 10px; }
+/* 维度 chips 横滑一行，不再折两行占首屏 */
+.jn { flex-wrap: nowrap; gap: 6px; margin-bottom: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.jn::-webkit-scrollbar { display: none; }
+.jn .chip, .jn .ghost { flex: none; }
+/* 「重新查询」是这一屏唯一的主行动：横向滚动时钉在右侧，别让它滑出屏幕 */
+.jn .ghost { position: sticky; right: 0; background: var(--panel); box-shadow: -10px 0 8px -4px var(--panel); }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+.chip { padding: 4px 9px; }
+</style>

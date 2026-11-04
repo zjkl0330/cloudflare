@@ -31,16 +31,19 @@ const open = ref(false);
 </template>
 
 <style scoped>
-.fn { margin: 10px 2px 0; border: 1px solid var(--line-soft); border-radius: var(--radius-s); background: var(--panel-2); }
+/* 说明块不是数据块：眉题 + 发丝线，不包圆角盒、不铺底色 */
+.fn { margin: 10px 2px 0; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; background: transparent; }
 .fn-h {
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%;
-  padding: 8px 11px; background: none; border: 0; text-align: left; cursor: pointer;
-  font-family: inherit; font-size: 12px; color: var(--fg-2);
+  padding: 8px 2px; background: none; border: 0; text-align: left; cursor: pointer;
+  font-family: inherit; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
 }
-.fn-x { font-size: 11px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none; }
+.fn-x { font-size: var(--t-2xs); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none;
+  font-weight: 400; letter-spacing: 0; text-transform: none; }
 .fn-b {
-  padding: 0 11px 10px; font-size: 11.5px; line-height: 1.65; color: var(--muted);
+  padding: 0 2px 8px; font-size: var(--t-xs); line-height: 1.65; color: var(--muted);
   overflow-wrap: break-word;
 }
-.fn-b :deep(code) { font-size: 11px; }
+.fn-b :deep(code) { font-size: var(--t-2xs); }
 </style>

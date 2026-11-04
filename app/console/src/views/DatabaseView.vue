@@ -61,14 +61,15 @@ watch(reloadTick, () => { reloadKey.value++; });
 </template>
 
 <style scoped>
+/* 三段切换：与看板/计算页同一套分段语言（一体式底槽 + 选中实底） */
 .seg {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; margin-bottom: 12px;
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin-bottom: 12px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px;
 }
 .seg-b {
-  background: none; border: 0; border-radius: 9px; color: var(--muted);
-  padding: 9px 4px; font-size: 13px; font-family: inherit; letter-spacing: .02em;
-  transition: color .16s ease, background .16s ease;
+  background: none; border: 0; border-radius: 6px; color: var(--fg-2, inherit);
+  padding: 6px 4px; font-size: var(--t-xs); font-family: inherit;
+  transition: color .12s ease, background .12s ease;
 }
-.seg-b.on { background: var(--panel-3); color: var(--accent); font-weight: 650; box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset; }
+.seg-b.on { background: var(--accent); color: var(--on-accent, #fff); font-weight: 600; }
 </style>

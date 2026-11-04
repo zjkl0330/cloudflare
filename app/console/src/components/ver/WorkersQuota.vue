@@ -156,26 +156,27 @@ const windowLabel = computed(() => {
 <style scoped>
 .hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .hd > h3 { margin-bottom: 0; }
-.cal { background: none; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); font-size: 11px; padding: 2px 8px; cursor: pointer; flex: none;
-  box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--panel), 0 0 0 1px var(--line); transition: color .3s ease, box-shadow .3s ease, border-color .3s ease; }
-.cal:hover { color: var(--accent); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--panel), 0 0 0 1px var(--accent); }
-.cal:hover { color: var(--accent); border-color: var(--accent); }
-.cal-x { margin-top: 8px; border-left: 3px solid var(--line); background: var(--panel-2); border-radius: 0 8px 8px 0; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--fg-2); }
+/* 口径键退成小号幽灵键，跟列表行里的次级动作同一档 */
+.cal { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted);
+  height: 24px; padding: 0 8px; font-size: var(--t-2xs); cursor: pointer; flex: none; }
+.cal:hover { color: var(--accent); border-color: var(--accent-dim); }
+.cal-x { margin-top: 8px; border-left: 3px solid var(--line); background: var(--panel-2); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 8px 10px; font-size: var(--t-xs); line-height: 1.6; color: var(--fg-2); }
 .cal-x p { margin: 0 0 6px; }
 .cal-x p:last-child { margin-bottom: 0; }
 .line { margin-top: 4px; }
 .quota { margin-top: 12px; }
 .quota.na { opacity: .9; }
 .qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.qname { font-size: 14px; font-weight: 600; }
-.qnum { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 16px; }
-.qnum.miss { color: var(--muted); font-size: 13px; }
-.qlim { color: var(--muted); font-size: 12px; margin-left: 4px; }
-.track { height: 8px; background: var(--panel-2); border-radius: 4px; overflow: hidden; box-shadow: 0 0 0 1px var(--line-soft) inset; margin: 6px 0 4px; }
-.fill { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius: 4px; }
+.qname { font-size: var(--t-sm); font-weight: 600; }
+.qnum { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--t-md); }
+.qnum.miss { color: var(--muted); font-size: var(--t-sm); }
+.qlim { color: var(--muted); font-size: var(--t-xs); margin-left: 4px; }
+.track { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--line-soft) inset; margin: 6px 0 4px; }
+.fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .fill.none { width: 0; }
-.fold { align-self: flex-start; margin-top: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 12px; padding: 5px 10px; cursor: pointer;
-  box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--panel), 0 0 0 1px var(--line); transition: color .3s ease, box-shadow .3s ease, border-color .3s ease; }
-.fold:hover { color: var(--accent); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--panel), 0 0 0 1px var(--accent); }
+.fold { align-self: flex-start; margin-top: 6px; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); color: var(--muted); height: 28px; padding: 0 10px; font-size: var(--t-2xs); cursor: pointer; }
+.fold:hover { color: var(--accent); border-color: var(--accent-dim); }
 code { font-family: var(--font-num); }
 </style>

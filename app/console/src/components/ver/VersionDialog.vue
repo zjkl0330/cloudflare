@@ -405,20 +405,22 @@ function strategyText(v: unknown): string {
 .wrap { background: var(--panel); }
 .caret { margin-left: 8px; color: var(--accent); }
 .acts { display: flex; align-items: center; gap: 8px; flex: none; max-width: none; text-align: right; }
-.detail { padding: 10px 13px 14px; border-top: 1px dashed var(--line); background: var(--panel-2); }
-.detail h4 { margin: 14px 0 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.detail { padding: 10px 13px 14px; border-top: 1px solid var(--line-soft); background: var(--panel-2); }
+.detail h4 { margin: 14px 0 6px; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
 .detail h4:first-child { margin-top: 0; }
-.warnline { font-size: 12.5px; color: var(--warn); background: rgb(var(--warn-rgb) / .1); border-left: 3px solid var(--warn); border-radius: 6px; padding: 8px 10px; margin: 0 0 8px; line-height: 1.55; }
-.warn-inline { display: block; color: var(--warn); font-size: 11.5px; margin-top: 2px; }
-button.sm { padding: 4px 10px; font-size: 12px; }
-.chip.sm { padding: 2px 8px; font-size: 11px; margin-left: 6px; }
+.warnline { font-size: var(--t-xs); color: var(--warn); background: rgb(var(--warn-rgb) / .08); border-left: 3px solid var(--warn);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 8px 10px; margin: 0 0 8px; line-height: 1.55; }
+.warn-inline { display: block; color: var(--warn); font-size: var(--t-2xs); margin-top: 2px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+.chip.sm { padding: 2px 8px; font-size: var(--t-2xs); margin-left: 6px; }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .log { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
-.log .ok { color: var(--ok); font-size: 12px; }
-.log .no { color: var(--bad); font-size: 12px; word-break: break-all; }
+.log .ok { color: var(--ok); font-size: var(--t-xs); }
+.log .no { color: var(--bad); font-size: var(--t-xs); word-break: break-all; }
 .mono { font-family: var(--font-num); }
-.cmd { font-size: 12px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); word-break: break-all; }
-.body { font-size: 11.5px; margin: 8px 0 0; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
+.cmd { font-size: var(--t-xs); padding: 7px 9px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); background: var(--panel-2); word-break: break-all; }
+.body { font-size: var(--t-2xs); margin: 8px 0 0; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
 .rb { margin-top: 8px; }
 .ok { color: var(--ok); }
 </style>

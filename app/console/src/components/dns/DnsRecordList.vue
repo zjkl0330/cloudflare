@@ -66,34 +66,34 @@ function toggle(r: any) {
 </template>
 
 <style scoped>
-.dl { display: flex; flex-direction: column; gap: 8px; }
-.drow { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; cursor: pointer; }
+/* 记录列表 = 连续行 + 发丝线；行本身就是编辑入口，不再每行套一只圆角卡 */
+.dl { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--line-soft); }
+.drow { background: transparent; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0;
+  padding: 10px 2px; display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; cursor: pointer; }
+.drow:hover { background: var(--panel-2); }
+.drow:last-of-type { border-bottom: 0; }
 .lead { min-width: 0; flex: 1; }
-.name { font-size: 15px; font-weight: 600; word-break: break-all; }
-.content { color: var(--muted); font-size: 12.5px; margin-top: 3px; word-break: break-all; }
+.name { font-size: var(--t-sm); font-weight: 650; word-break: break-all; }
+.content { color: var(--muted); font-size: var(--t-xs); margin-top: 3px; word-break: break-all; }
 .content.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.unfold { align-self: flex-start; margin-top: 4px; background: none; border: 0; padding: 2px 0; color: var(--accent); font-size: 12px; font-family: inherit; cursor: pointer; }
+.unfold { align-self: flex-start; margin-top: 4px; background: none; border: 0; padding: 2px 0; color: var(--accent); font-size: var(--t-2xs); font-family: inherit; cursor: pointer; }
 .mono { font-family: var(--font-num); }
 .flags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .badge.prox { color: var(--accent); border-color: rgb(var(--accent-rgb) / .45); }
 .badge.dnsonly { color: var(--muted); }
 .badge.dimmable { color: var(--ok); border-color: rgb(var(--ok-rgb) / .35); }
 .acts { display: flex; flex-direction: column; gap: 6px; flex: none; }
-/* 与 main.css 的 Yaya12085 皮肤对齐：柔光白面 + hover 抬 1px + 描边走语义色。
-   scoped 类特异性更高，不同步一遍这里就还是旧反馈。 */
+/* 行内动作 = 28 高的描边小键，扁平，不再用柔光投影 */
 .act {
-  background: var(--panel); border: none; border-radius: 10px; color: var(--accent); font-size: 12px; padding: 6px 12px; cursor: pointer;
-  box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--panel), 0 0 0 1px var(--line);
-  transition: color .25s ease, box-shadow .25s cubic-bezier(.4, 0, .2, 1), transform .25s cubic-bezier(.4, 0, .2, 1);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--fg-2); height: 26px; padding: 0 9px; font-size: var(--t-2xs); cursor: pointer; font-family: inherit;
 }
-.act:hover { color: var(--accent); transform: translateY(-1px); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--panel), 0 5px 12px rgb(0 0 0 / .06), 0 0 0 1px var(--accent); }
-.act:active { transform: translateY(0); box-shadow: inset 3px 3px 6px var(--neu-dark), inset -2px -2px 4px var(--panel); }
-.act.del { color: var(--bad); box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--panel), 0 0 0 1px rgb(var(--bad-rgb) / .4); }
-.act.del:hover { color: var(--bad); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--panel), 0 5px 12px rgb(0 0 0 / .06), 0 0 0 1px var(--bad); }
+.act:hover { color: var(--accent); border-color: var(--accent-dim); }
+.act.del { color: var(--bad); border-color: rgb(var(--bad-rgb) / .4); }
+.act.del:hover { border-color: var(--bad); }
 .fold {
-  align-self: center; background: var(--panel); border: none; border-radius: 999px; color: var(--muted); font-size: 12px; padding: 6px 13px; cursor: pointer;
-  box-shadow: inset 3px 3px 5px var(--neu-dark), inset -3px -3px 5px var(--panel), 0 0 0 1px var(--line);
-  transition: color .25s ease, box-shadow .25s cubic-bezier(.4, 0, .2, 1);
+  align-self: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--muted); height: 28px; padding: 0 12px; font-size: var(--t-2xs); cursor: pointer; margin: 8px 0;
 }
-.fold:hover { color: var(--accent); box-shadow: inset 2px 2px 4px var(--neu-dark), inset -2px -2px 4px var(--panel), 0 0 0 1px var(--accent); }
+.fold:hover { color: var(--accent); border-color: var(--accent-dim); }
 </style>

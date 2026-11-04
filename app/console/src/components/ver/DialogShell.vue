@@ -38,33 +38,40 @@ const hasFoot = computed(() => !!slots.foot);
 
 <style scoped>
 .ds-mask {
-  position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, .62);
+  position: fixed; inset: 0; z-index: 55; background: rgba(0, 0, 0, .5);
   display: flex; align-items: flex-end; justify-content: center;
 }
+/* 底部抽屉：10 圆角 + 发丝线 + grab 条；扁平，不用投影 */
 .ds {
-  width: 100%; max-width: 640px; max-height: 90vh; display: flex; flex-direction: column;
-  background: var(--bg); color: var(--fg); border-top: 1px solid var(--line);
-  border-radius: 14px 14px 0 0; overflow: hidden;
+  width: 100%; max-width: 640px; max-height: 88vh; display: flex; flex-direction: column;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; overflow: hidden;
+}
+.ds::before {
+  content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--line);
+  margin: 8px auto 0; flex: none;
 }
 .ds.wide { max-width: 760px; }
 .ds-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
-  padding: 12px 14px 8px; border-bottom: 1px solid var(--line); flex: none;
+  padding: 10px 14px 8px; border-bottom: 1px solid var(--line-soft); flex: none;
 }
-.ds-head h3 { margin: 0; font-size: 15px; }
-.ds-sub { margin: 4px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.ds-head h3 { margin: 0; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
+.ds-sub { margin: 4px 0 0; font-size: var(--t-2xs); color: var(--muted); line-height: 1.5; }
 .ds-x {
-  flex: none; background: none; border: 1px solid var(--line); border-radius: 8px;
-  color: var(--muted); font-size: 12px; padding: 5px 9px;
+  flex: none; height: 28px; padding: 0 9px; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--r-sm); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
 }
+.ds-x:hover { color: var(--fg); border-color: var(--accent-dim); }
 .ds-body { padding: 12px 14px 16px; overflow: auto; -webkit-overflow-scrolling: touch; }
 .ds-foot {
   flex: none; display: flex; gap: 8px; justify-content: flex-end;
   padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line);
-  background: var(--panel);
+  background: var(--panel-2);
 }
 @media (min-width: 720px) {
   .ds-mask { align-items: center; padding: 24px; }
-  .ds { border-radius: 14px; border: 1px solid var(--line); max-height: 84vh; }
+  .ds { border-radius: var(--r-lg); border: 1px solid var(--line); max-height: 84vh; }
+  .ds::before { display: none; }
 }
 </style>

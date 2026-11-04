@@ -83,7 +83,7 @@ const configuredNothing = computed(
       </div>
     </div>
 
-    <div class="card" style="margin-top:8px">
+    <div class="card">
       <h3 style="margin-top:0">Access 应用（{{ apps.data ? apps.data.length + " 个" : "—" }}）</h3>
       <ErrorNote :err="apps.err" />
       <div class="empty" v-if="apps.loading && !apps.data">取数中…</div>
@@ -97,7 +97,7 @@ const configuredNothing = computed(
       <div class="empty" v-else-if="!apps.err && apps.data && !apps.data.length">这个账号里一个 Access 应用都没配</div>
     </div>
 
-    <div class="card" style="margin-top:8px">
+    <div class="card">
       <h3 style="margin-top:0">用户组（{{ groups.data ? groups.data.length + " 个" : "—" }}）</h3>
       <ErrorNote :err="groups.err" />
       <div class="empty" v-if="groups.loading && !groups.data">取数中…</div>
@@ -107,7 +107,7 @@ const configuredNothing = computed(
       <div class="empty" v-else-if="!groups.err && groups.data && !groups.data.length">没有用户组</div>
     </div>
 
-    <div class="card" style="margin-top:8px">
+    <div class="card">
       <h3 style="margin-top:0">访问策略（{{ policies.data ? policies.data.length + " 条" : "—" }}）</h3>
       <ErrorNote :err="policies.err" />
       <div class="empty" v-if="policies.loading && !policies.data">取数中…</div>
@@ -126,3 +126,14 @@ const configuredNothing = computed(
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 组织信息走 ghx 的 kv 面板：发丝线分行，键窄、值长 */
+.kv { grid-template-columns: 86px 1fr; gap: 0 12px; font-size: var(--t-xs); }
+.kv dt, .kv dd { padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.kv > :first-child, .kv > :nth-child(2) { border-top: 0; padding-top: 2px; }
+.kv dd { line-height: 1.55; overflow-wrap: anywhere; }
+.rows { margin-top: 4px; }
+/* 各块的卡片之间统一留 12，不叠加 inline 的 margin-top:8 */
+.card { margin-bottom: 12px; }
+</style>
