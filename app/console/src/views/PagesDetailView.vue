@@ -486,14 +486,15 @@ function refresh() {
 
 <template>
   <div>
-    <div class="row" style="justify-content: space-between; margin-bottom: 10px">
-      <div class="row" style="gap: 8px; min-width: 0">
-        <button class="ghost" type="button" @click="nav.push('/compute')">← 计算</button>
-        <h2 style="margin: 0; font-size: 17px; overflow: hidden; text-overflow: ellipsis">{{ name }}</h2>
+    <div class="row whead">
+      <div class="row hname">
+        <h2 class="wname">{{ name }}</h2>
+        <span class="small muted">Pages · 项目</span>
       </div>
+      <button class="ghost sm" type="button" @click="nav.push('/compute')">← 计算</button>
     </div>
 
-    <div class="row" style="gap: 6px; flex-wrap: wrap; margin-bottom: 10px">
+    <div class="row jn">
       <button class="chip" type="button" @click="jumpTo('overview')">概览</button>
       <button class="chip" type="button" @click="jumpTo('deps')">部署历史 / 回滚</button>
       <button class="chip" type="button" @click="jumpTo('domains')">自定义域名</button>
@@ -649,12 +650,12 @@ function refresh() {
     <div class="card" id="c-domains">
       <h3>自定义域名（{{ domains.data?.length ?? 0 }} 个）</h3>
       <ErrorNote :err="domains.err || zones.err" />
-      <div class="row gen" style="margin: 8px 0">
+      <div class="row gen domform">
         <select v-model="domainZone" class="field sel" :disabled="!zones.data?.length">
           <option v-if="!zones.data?.length" value="">没有可见 zone</option>
           <option v-for="z in zones.data || []" :key="z.id" :value="String(z.id)">{{ z.name }}</option>
         </select>
-        <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0">
+        <div class="genp">
           <input
             v-model="domainPrefix"
             class="field"
@@ -809,23 +810,52 @@ function refresh() {
 </template>
 
 <style scoped>
+/* 详情页头：名称 + 类型注脚；返回键退到右侧，不抢标题的层级 */
+.whead { justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.hname { gap: 8px; align-items: baseline; min-width: 0; flex: 1; }
+.wname { margin: 0; font-size: var(--t-lg); font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+/* 锚点条：横向滚动，不再折成两三行把首屏吃掉 */
+.jn { flex-wrap: nowrap; gap: 6px; margin-bottom: 12px; padding-bottom: 2px;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.jn::-webkit-scrollbar { display: none; }
+.jn .chip { flex: none; padding: 4px 9px; }
+
+.card { margin-bottom: 12px; }
 .kv a { color: var(--accent); text-decoration: none; }
 .kv a:hover { text-decoration: underline; }
 .mono { font-family: var(--font-num); }
-.item-wrap { border-bottom: 1px solid var(--line); }
+
+/* kv 行：ghx 的 key-value 面板 —— 发丝线分行，值走等宽，标签不抢戏 */
+.kv { grid-template-columns: 86px 1fr; gap: 0 12px; font-size: var(--t-xs); }
+.kv dt, .kv dd { padding: 6px 0; border-top: 1px solid var(--line-soft); }
+.kv > :first-child, .kv > :nth-child(2) { border-top: 0; padding-top: 2px; }
+.kv dt { line-height: 1.5; }
+.kv dd { line-height: 1.55; word-break: normal; overflow-wrap: anywhere; }
+
+/* 卡片标题在 .row 里时（部署历史那张）也要落到同一档眉题 */
+.card > .row > h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase; }
+
+/* 部署历史：行内徽章允许换行，但徽章自身不拆字；左栏吃掉剩余宽度，别让右栏把 ID 挤成两行 */
+.item-wrap .item > div:first-child { flex: 1; }
+.item .k { white-space: normal; overflow: visible; }
+.item .k .badge { white-space: nowrap; }
+.item-wrap { border-bottom: 1px solid var(--line-soft); }
+.item-wrap .item { border-bottom: 0; }
 .item-wrap:last-child { border-bottom: none; }
-.depdetail { padding: 4px 13px 14px; }
+.depdetail { padding: 2px 12px 12px; }
 .stages { margin-top: 10px; display: flex; flex-direction: column; gap: 1px; background: var(--line); border-radius: 8px; overflow: hidden; }
-.sec-h { font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px 10px 4px; }
+.sec-h { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; padding: 8px 10px 4px; }
 .stage { background: var(--panel); padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
-.stage-n { flex: 1; font-size: 13px; }
+.stage-n { flex: 1; font-size: var(--t-sm); }
 .dotc { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
 .dotc.ok { background: var(--ok); }
 .dotc.bad { background: var(--bad); }
+
 .logbox {
   white-space: pre-wrap;
   word-break: break-all;
-  font-size: 11.5px;
+  font-size: var(--t-xs);
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -833,20 +863,48 @@ function refresh() {
   max-height: 240px;
   overflow: auto;
 }
-button.sm { padding: 4px 10px; font-size: 12px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .errtext { color: var(--bad); }
-.editbox { padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.vrow { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+
+/* 表单区不另起一只圆角盒子，用一条发丝线把它跟上面的名单/说明切开 */
+.editbox { margin-top: 10px; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft);
+  border-radius: 0; background: transparent; display: flex; flex-direction: column; gap: 8px; }
+.vrow { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--line-soft); }
+.domform { margin: 10px 0 6px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .gen { flex-wrap: wrap; gap: 6px; }
-.gen .field { max-width: 200px; }
+.gen .field { max-width: 280px; }
+.genp { display: flex; align-items: center; gap: 4px; flex: 1 1 150px; min-width: 0; }
 .sel { width: auto; }
-/* 低频区块折叠：二级页默认只留概览 / 部署 / 域名，环境变量与日志收成一行摘要 */
-.foldcard { border: 1px solid var(--line-soft); border-radius: 14px; background: var(--panel-2); margin-bottom: 12px; overflow: hidden; }
-.foldcard > summary { display: flex; align-items: center; gap: 8px; padding: 11px 13px; cursor: pointer; list-style: none; font-size: var(--t-sm); font-weight: 650; color: var(--fg-2); }
+/* 窄屏把绑域名表单改成三行：zone 一行、前缀一行、按钮一行（原来挤在一行，前缀框只剩几十像素） */
+@media (max-width: 480px) {
+  .gen .sel { flex: 1 1 100%; width: 100%; max-width: none; }
+  .genp { flex: 1 1 100%; }
+  .genp .field { max-width: none; }
+  .gen > button { margin-left: auto; }
+}
+
+/* 低频区块折叠：ghx 的分区眉题（大写字距 + 发丝线），展开后里面仍是正常卡片。
+   summary 已经写了标题，卡内重复的 h3 不再显示（DOM 保留，入口一个不少）。 */
+.foldcard { border: 0; background: transparent; margin: 14px 0 0; overflow: visible; }
+.foldcard > summary {
+  display: flex; align-items: center; gap: 8px; padding: 0 2px 7px;
+  border-bottom: 1px solid var(--line-soft); cursor: pointer; list-style: none;
+  font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
+  letter-spacing: .04em; text-transform: uppercase;
+}
 .foldcard > summary::-webkit-details-marker { display: none; }
-.foldcard > summary::before { content: ""; width: 6px; height: 6px; flex: none; border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted); transform: rotate(-45deg); transition: transform .18s ease; }
+.foldcard > summary::before {
+  content: ""; width: 6px; height: 6px; flex: none;
+  border-right: 1.6px solid var(--muted); border-bottom: 1.6px solid var(--muted);
+  transform: rotate(-45deg); transition: transform .18s ease;
+}
 .foldcard[open] > summary::before { transform: rotate(45deg); }
-.foldcard .fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted); }
-.foldcard > .card { margin: 0 8px 8px; }
+.foldcard[open] > summary { margin-bottom: 10px; }
+.foldcard .fc-s { margin-left: auto; font-size: var(--t-2xs); font-weight: 400; color: var(--muted);
+  letter-spacing: 0; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.foldcard > .card { margin: 0 0 10px; }
+.foldcard > .card > h3 { display: none; }
+/* 锚点跳过来时，折叠态也要看得见落点 */
+.foldcard.flash > summary { color: var(--accent); border-bottom-color: var(--accent); }
 </style>
