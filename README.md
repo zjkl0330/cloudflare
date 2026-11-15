@@ -25,7 +25,7 @@
 
 ## 快速开始（APK）
 
-1. 从 [Releases](https://github.com/827802685/cloudflare/releases) 下载 APK 装上（或自己在 Actions 里构建）
+1. 从 [Releases](https://github.com/zjkl0330/cloudflare/releases) 下载 APK 装上（或自己在 Actions 里构建）
 2. 设置 → 粘贴一把 Cloudflare API Token（应用会拿它问一次 `/accounts` 验证并自动发现账号）
 3. 完成。数据直连 Cloudflare，不经任何中间服务
 

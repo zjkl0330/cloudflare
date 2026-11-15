@@ -97,7 +97,7 @@ const bucketFold = useFold(() => shownBuckets.value);
       筛完 {{ buckets.data.length }} 个里没有匹配的（是筛不到，不是账号里没有）。
     </div>
     <div v-else-if="!buckets.err && buckets.data" class="empty">这个账号里没有 R2 存储桶（不是没取到）</div>
-    <button class="ghost" style="margin-top: 8px; height: 28px; padding: 0 10px; font-size: var(--t-2xs)" v-if="bucketFold.rest" @click="bucketFold.open = !bucketFold.open">
+    <button class="ghost sm" style="margin-top: 8px" v-if="bucketFold.rest" @click="bucketFold.open = !bucketFold.open">
       {{ bucketFold.label }}
     </button>
 
@@ -117,3 +117,12 @@ const bucketFold = useFold(() => shownBuckets.value);
     </template>
   </StoreSplit>
 </template>
+
+<style scoped>
+/* 详情栏本身就是一块面板：里面不再套第二层卡，标题走眉题；读数轨只留 pane 一条 */
+.card { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+.card::before { display: none; }
+.card > h3 { font-size: var(--t-2xs); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+</style>

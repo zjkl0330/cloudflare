@@ -13,7 +13,11 @@
  * 三级全空才报错 —— 绝不把"读不到"说成"已是最新"。
  */
 
-const REPO = "827802685/cloudflare";
+/**
+ * 本仓库的 GitHub 地址（owner/repo）。换仓库/改名只改这一处：
+ * 检查更新、发行说明页、下载页、releases.atom 兜底全部由它拼出来。
+ */
+const REPO = "zjkl0330/cloudflare";
 
 /** 打包时由 vite define 从构建环境注入（CI 的发布版本 or package.json 版本） */
 declare const __APP_VERSION__: string;
@@ -34,7 +38,7 @@ export const ACCEL_BASES = String(import.meta.env.VITE_GH_ACCEL_BASE ?? "")
 /**
  * 首选加速域名（下载页 / 发行说明按钮的 href 用它，取候选第一个）；空串 = 没配置，链接直连 GitHub。
  * **必须取单个域名**：以前这里直接拿整串环境变量，多域名配置下 href 会拼成
- * `https://A,https://B/827802685/...`（0.2.2 的回归），所以改成取 ACCEL_BASES[0]。
+ * `https://A,https://B/zjkl0330/...`（0.2.2 的回归），所以改成取 ACCEL_BASES[0]。
  */
 export const ACCEL_BASE = ACCEL_BASES[0] ?? "";
 

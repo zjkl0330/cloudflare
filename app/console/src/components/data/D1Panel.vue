@@ -182,7 +182,7 @@ async function copyContent(text: string) {
       筛完 {{ dbs.data.length }} 个里没有匹配的（是筛不到，不是账号里没有）。清空搜索词就全回来了。
     </div>
     <div v-else-if="!dbs.loading && !dbs.err" class="empty">这个账号里没有 D1 数据库（不是没取到）</div>
-    <button class="ghost" style="margin-top: 8px; font-size: 12px" v-if="dbFold.rest" @click="dbFold.open = !dbFold.open">
+    <button class="ghost sm" style="margin-top: 8px" v-if="dbFold.rest" @click="dbFold.open = !dbFold.open">
       {{ dbFold.label }}
     </button>
 
@@ -224,11 +224,11 @@ async function copyContent(text: string) {
         </div>
 
         <!-- 库的静态信息：只留"这库是谁"，不占一整张卡 -->
-        <div class="card" style="margin-top:8px">
+        <div class="card">
           <h3>{{ selectedDb?.name }} · 基本信息</h3>
           <div class="kv">
             <dt>UUID</dt>
-            <dd><code style="font-size:11px">{{ selectedId }}</code> <button class="ghost" style="font-size:11px;padding:2px 6px" @click="copyContent(selectedId)">复制</button></dd>
+            <dd><code class="uuid">{{ selectedId }}</code> <button class="ghost xs" @click="copyContent(selectedId)">复制</button></dd>
             <dt>创建时间</dt><dd>{{ dt(dbDetail.data?.created_at || selectedDb?.created_at || '') }}</dd>
             <dt>版本</dt><dd>{{ dbDetail.data?.version || selectedDb?.version }}</dd>
             <dt>大小</dt><dd>{{ bytes(dbDetail.data?.file_size ?? selectedDb?.file_size ?? 0) }}</dd>
@@ -238,10 +238,9 @@ async function copyContent(text: string) {
         </div>
 
         <!-- SQL 查询：结果表宽，所以放在表清单下面而不是弹层 -->
-        <div class="card" style="margin-top:8px">
+        <div class="card">
           <h3>SQL 查询</h3>
-          <textarea v-model="querySql" class="field" rows="3"
-            style="font-family:var(--font-num);font-size:12px;resize:vertical;margin-bottom:6px"
+          <textarea v-model="querySql" class="field sqlbox" rows="3"
             placeholder="SELECT * FROM ... LIMIT 20"
           ></textarea>
           <div class="row" style="gap:6px;align-items:center">
@@ -300,4 +299,16 @@ table td { padding: 3px 6px; border-bottom: 1px solid var(--line-soft); }
   color: var(--fg-2); font-family: var(--font-num); font-size: var(--t-2xs); padding: 4px 9px; cursor: pointer;
 }
 .tbl.on { border-color: var(--accent); color: var(--accent); background: rgb(var(--accent-rgb) / .09); }
+
+/* 详情栏本身就是一块面板：里面这几段不再各套一层卡，拉平成「眉题 + 发丝线」的分节。
+   内层卡自己那道 2px 读数轨要去掉——状态轨只留外层 pane 一条，别画成双轨。 */
+.card { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+.card::before { display: none; }
+.card + .card { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.card > h3 { font-size: var(--t-2xs); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; margin: 0 0 8px; }
+.uuid { font-size: var(--t-xs); word-break: break-all; }
+.sqlbox { font-family: var(--font-num); font-size: var(--t-xs); resize: vertical; margin-bottom: 8px; }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+button.xs { height: 24px; padding: 0 8px; font-size: var(--t-2xs); }
 </style>

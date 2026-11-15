@@ -235,7 +235,7 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
       筛完 {{ nss.data.length }} 个里没有匹配的（是筛不到，不是账号里没有）。清空搜索词就全回来了。
     </div>
     <div v-else-if="!nss.loading && !nss.err" class="empty">这个账号里没有 KV 命名空间（不是没取到）</div>
-    <button class="ghost" style="margin-top: 8px; font-size: 12px" v-if="nsFold.rest" @click="nsFold.open = !nsFold.open">
+    <button class="ghost sm" style="margin-top: 8px" v-if="nsFold.rest" @click="nsFold.open = !nsFold.open">
       {{ nsFold.label }}
     </button>
 
@@ -245,8 +245,8 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
         <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">{{ selectedNs?.title }} · Key</h3>
           <div class="row" style="gap:6px">
-            <button class="ghost" style="font-size:12px" @click="showWrite = !showWrite">{{ showWrite ? "收起" : "写入键值" }}</button>
-            <button class="ghost" style="font-size:12px" :disabled="keys.loading || !hasMore" @click="loadMore">
+            <button class="ghost sm" @click="showWrite = !showWrite">{{ showWrite ? "收起" : "写入键值" }}</button>
+            <button class="ghost sm" :disabled="keys.loading || !hasMore" @click="loadMore">
               {{ keys.loading ? "加载中" : hasMore ? "加载下一页" : "到底了" }}
             </button>
           </div>
@@ -255,12 +255,11 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
           v-model="optIn" variant="bar"
           :note="optIn ? '确认后写请求会真的发出（网关模式还有 WRITE_ENABLED 一道）。' : '关着时写请求不会离开这台设备。'"
         />
-        <div v-if="showWrite" class="card" style="margin-top:8px;background:var(--panel-2)">
+        <div v-if="showWrite" class="card wbox">
           <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
-            <input v-model="wKey" class="field" placeholder="Key（≤512 字节）" style="flex:1;min-width:0;font-family:var(--font-num);font-size:12px" />
+            <input v-model="wKey" class="field mono" placeholder="Key（≤512 字节）" style="flex:1;min-width:0" />
           </div>
-          <textarea v-model="wVal" class="field" rows="4" placeholder="Value（文本，≤64KB）"
-            style="font-family:var(--font-num);font-size:12px;resize:vertical"></textarea>
+          <textarea v-model="wVal" class="field mono" rows="4" placeholder="Value（文本，≤64KB）"></textarea>
           <div class="row" style="gap:6px;margin-top:6px">
             <button class="primary" :disabled="!wKey.trim() || !wVal" @click="askWrite">生成请求预览</button>
             <ErrorNote v-if="wErr" :err="wErr" style="flex:1" />
@@ -269,14 +268,14 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
         <div class="kfind">
           <input v-model="kq" type="search" class="field" placeholder="搜索 Key 名" />
           <span class="small muted" v-if="kq.trim()">筛出 {{ shownKeys.length }} / 已加载 {{ rows.length }} 条</span>
-          <button class="ghost" v-if="kq" @click="kq = ''">清空</button>
+          <button class="ghost sm" v-if="kq" @click="kq = ''">清空</button>
         </div>
         <AsyncBlock :loading="keys.loading && !keys.data" :err="keys.err" :has="rows.length > 0"
           :can-retry="!!keys.err" empty-text="这个命名空间里确实没有 Key（不是没取到）" @retry="loadKeys()">
           <div class="small muted" v-if="kq.trim() && !shownKeys.length" style="margin-bottom:4px">
             已加载的 {{ rows.length }} 条里没有匹配「{{ kq.trim() }}」的 Key（是筛不到，不是这个命名空间空）。
           </div>
-          <div style="overflow-x:auto">
+          <div class="tblwrap">
             <table>
               <thead><tr><th>Key</th><th>过期时间</th><th>操作</th></tr></thead>
               <tbody>
@@ -287,14 +286,14 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
                     <span v-else class="muted">—</span>
                   </td>
                   <td style="white-space:nowrap">
-                    <button class="ghost" style="font-size:11px;padding:2px 6px" @click="copyContent(k.name)">复制</button>
-                    <button class="ghost" style="font-size:11px;padding:2px 6px;color:var(--bad)" @click="askDeleteKey(k)">删除</button>
+                    <button class="ghost xs" @click="copyContent(k.name)">复制</button>
+                    <button class="ghost xs danger" @click="askDeleteKey(k)">删除</button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <button class="ghost" style="margin-top: 6px; font-size: 12px" v-if="keyFold.rest" @click="keyFold.open = !keyFold.open">
+          <button class="ghost sm" style="margin-top: 6px" v-if="keyFold.rest" @click="keyFold.open = !keyFold.open">
             {{ keyFold.label }}
           </button>
           <div v-if="hasMore" class="small muted" style="margin-top:4px">还有下一页（已显示 {{ rows.length }} 条，CF 不返回总数）</div>
@@ -322,6 +321,17 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
 }
 .kfind input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
 table { width: 100%; font-size: var(--t-xs); border-collapse: collapse; }
-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
-table td { padding: 4px 8px; border-bottom: 1px solid var(--line-soft); }
+table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+table td { padding: 6px 8px; border-bottom: 1px solid var(--line-soft); }
+.tblwrap { overflow-x: auto; border: 1px solid var(--line-soft); border-radius: var(--r-sm); }
+button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
+button.xs { height: 24px; padding: 0 8px; font-size: var(--t-2xs); }
+button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .4); }
+
+/* 详情栏已是一块面板：外层 .card 只当容器用，不再套第二层卡；舞台上的读数轨只留 pane 那一条 */
+.card { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+.card::before { display: none; }
+.card.wbox { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 10px; margin-top: 8px; }
+.mono { font-family: var(--font-num); font-size: var(--t-xs); }
 </style>

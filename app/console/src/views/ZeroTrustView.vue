@@ -72,7 +72,7 @@ const configuredNothing = computed(
       <ErrorNote :err="org.err" />
       <div class="empty" v-if="org.loading && !org.data">取数中…</div>
       <div class="kv" v-else-if="org.data">
-        <dt>登录域名</dt><dd><code style="font-size:11px">{{ org.data.auth_domain || "—（接口没返回这个字段）" }}</code></dd>
+        <dt>登录域名</dt><dd><code class="authdom">{{ org.data.auth_domain || "—（接口没返回这个字段）" }}</code></dd>
         <dt>组织名</dt><dd>{{ org.data.name || "—" }}</dd>
         <dt>创建时间</dt><dd>{{ dt(org.data.created_at) }}</dd>
         <dt>后台只读锁</dt><dd>{{ org.data.is_ui_read_only === true ? "开启" : org.data.is_ui_read_only === false ? "关闭" : "没取到这个字段，不下结论" }}</dd>
@@ -133,6 +133,7 @@ const configuredNothing = computed(
 .kv dt, .kv dd { padding: 6px 0; border-top: 1px solid var(--line-soft); }
 .kv > :first-child, .kv > :nth-child(2) { border-top: 0; padding-top: 2px; }
 .kv dd { line-height: 1.55; overflow-wrap: anywhere; }
+.authdom { font-size: var(--t-xs); word-break: break-all; }
 .rows { margin-top: 4px; }
 /* 各块的卡片之间统一留 12，不叠加 inline 的 margin-top:8 */
 .card { margin-bottom: 12px; }
