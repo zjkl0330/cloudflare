@@ -14,6 +14,12 @@
 :root {
   color-scheme: light;
 
+  /* 顶部状态栏让位高度。网页/PWA 用 env()（iOS 刘海靠它），
+     APK 里由 lib/nativebar.ts 用原生实测的状态栏高度覆盖 —— 鸿蒙 4 的 WebView 在
+     "WebView 已经被放到状态栏下面"时仍会报一个 env(safe-area-inset-top)，
+     再叠一次就成了状态栏和标题之间那条大白块。 */
+  --safe-top: env(safe-area-inset-top, 0px);
+
   /* ---------- 中性面：通道 + 实色（浅色 = ghx 的 Primer 浅色档） ---------- */
   --bg: #ffffff;
   --bg-2: #f6f8fa;        /* 顶栏/底栏那层的落点，比页面暗一档 */
@@ -229,9 +235,9 @@ body {
 /* ---------- 顶栏 / 底栏 ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 5;
-  /* viewport-fit=cover 已经开了，不加 safe-area-inset-top 的话 iOS 独立模式（加主屏）里
-     标题会被刘海/状态栏压住。底部 tabbar 早就有 inset-bottom，这里补上顶部对称的一份。 */
-  padding: calc(10px + env(safe-area-inset-top)) 16px 8px 16px;
+  /* 顶部让位量统一走 --safe-top：iOS 独立模式是刘海高度，APK 里由原生实测覆盖
+     （WebView 已在状态栏下沿时是 0，Android 15 强制 edge-to-edge 时是状态栏高度）。 */
+  padding: calc(10px + var(--safe-top)) 16px 8px 16px;
   background: var(--bg);
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
