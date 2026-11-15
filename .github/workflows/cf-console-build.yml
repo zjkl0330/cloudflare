@@ -289,6 +289,39 @@ jobs:
           test -d android || { echo "cap add 声称成功但没有 android/ 目录"; exit 1; }
           npx cap sync android 2>&1
 
+          # 品牌素材：桌面图标（含自适应图标）、启动图、系统栏颜色。
+          # cap add 每次都重建 android/，所以这些文件以 resources/android（与 res/ 同构）为唯一来源，
+          # 生成完之后整体覆盖一遍；素材由 tools 生成，不手改 android/ 里的副本。
+          cp -r resources/android/. android/app/src/main/res/
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png || { echo "图标素材没有覆盖进 res/"; exit 1; }
+          test -s android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png || { echo "自适应图标前景没覆盖进 res/"; exit 1; }
+
+          # 鸿蒙 4 / Android 12 的状态栏默认取主题里的深色，和页面白底对不上。
+          # 这里把 statusBarColor / navigationBarColor 指到 @color/app_system_bar（values 白、values-night #0d1117），
+          # 图标明暗用 @bool/app_light_system_bars 跟着系统档翻转；App 内手动切档由 lib/nativebar.ts 再调一次。
+          python3 - <<'PY'
+          p = "android/app/src/main/res/values/styles.xml"
+          s = open(p, encoding="utf-8").read()
+          if "app_system_bar" not in s:
+              items = (
+                  '        <item name="android:statusBarColor">@color/app_system_bar</item>\n'
+                  '        <item name="android:navigationBarColor">@color/app_system_bar</item>\n'
+                  '        <item name="android:windowLightStatusBar">@bool/app_light_system_bars</item>\n'
+                  '        <item name="android:windowLightNavigationBar">@bool/app_light_system_bars</item>\n'
+              )
+              for name in ("AppTheme.NoActionBar", "AppTheme.NoActionBarLaunch"):
+                  i = s.find('<style name="%s"' % name)
+                  if i < 0:
+                      continue
+                  j = s.find("</style>", i)
+                  s = s[:j] + items + s[j:]
+              open(p, "w", encoding="utf-8").write(s)
+              print("已注入系统栏颜色（statusBarColor / navigationBarColor）")
+          else:
+              print("系统栏颜色已存在，跳过")
+          PY
+          grep -n "app_system_bar" android/app/src/main/res/values/styles.xml
+
           # OAuth 回调要回到 App：自定义 scheme 在 Android 侧必须由 intent-filter 声明，
           # 否则系统浏览器授权完只会停在 "cfconsole://..."（打不开应用）。
           # cap add 每次重新生成 android/，所以这条注入只能放在生成之后、打包之前。

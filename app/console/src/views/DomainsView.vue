@@ -100,6 +100,28 @@ function pickAggZone(acc: string, id: string) {
   zopen.value = false;
 }
 
+/* ---------- 站点检索：站点一多，下拉里一条条翻比记名字还慢 ----------
+ * 只筛切换器里的清单，不动已选站点、不发请求；匹配站点名 / zone id / 账号名。 */
+const zoneQuery = ref("");
+const zoneQ = computed(() => zoneQuery.value.trim().toLowerCase());
+const zoneTotal = computed(() => (agg.on ? aggZoneCount.value : (zones.value.data?.length ?? 0)));
+const zonesFiltered = computed(() => {
+  const q = zoneQ.value;
+  const arr = zones.value.data ?? [];
+  if (!q) return arr;
+  return arr.filter((z: any) => `${z.name ?? ""} ${z.id ?? ""}`.toLowerCase().includes(q));
+});
+const aggZoneGroupsFiltered = computed(() => {
+  const q = zoneQ.value;
+  if (!q) return aggZoneGroups.value;
+  return aggZoneGroups.value
+    .map((g) => ({ ...g, zones: g.zones.filter((z) => `${z.name} ${z.id} ${g.accName}`.toLowerCase().includes(q)) }))
+    .filter((g) => g.zones.length);
+});
+const zoneMatchCount = computed(() =>
+  agg.on ? aggZoneGroupsFiltered.value.reduce((n, g) => n + g.zones.length, 0) : zonesFiltered.value.length,
+);
+
 /** 面板开合：写侧三块（新增/编辑、清缓存、向导）默认收起，一屏不塞满 */
 const editorOpen = ref(false);
 const purgeOpen = ref(false);
@@ -386,8 +408,9 @@ function toggleVal(row: HostRow, r: any): void {
 }
 
 const hostSearch = ref("");
+const hostQ = computed(() => hostSearch.value.trim().toLowerCase());
 const filteredRows = computed(() => {
-  const q = hostSearch.value.trim().toLowerCase();
+  const q = hostQ.value;
   if (!q) return mergedRows.value;
   return mergedRows.value.filter((row) =>
     row.host.toLowerCase().includes(q)
@@ -398,6 +421,21 @@ const filteredRows = computed(() => {
     || row.routes.some((rt) => String(rt.pattern ?? "").toLowerCase().includes(q) || String(rt.script ?? "").toLowerCase().includes(q)),
   );
 });
+
+/** 单个域名下也可能有几十条记录：行数只有 1 但记录多时同样给搜索框 */
+const showHostSearch = computed(
+  () => mergedRows.value.length > 1 || mergedRows.value.reduce((n, r) => n + r.records.length, 0) > 8,
+);
+
+/** 搜的是记录内容时，行内也把不相干的记录收起来 —— 否则搜到一条值，整段记录还得肉眼再扫一遍。
+ *  域名 / 账号本身就命中时保持整行完整；一条记录都没命中也不过滤，免得误报"没有记录"。 */
+function recsOf(row: HostRow): any[] {
+  const q = hostQ.value;
+  if (!q) return row.records;
+  if (row.host.toLowerCase().includes(q) || row.accName.toLowerCase().includes(q)) return row.records;
+  const hit = row.records.filter((r) => `${r.name ?? ""} ${r.type ?? ""} ${r.content ?? ""}`.toLowerCase().includes(q));
+  return hit.length ? hit : row.records;
+}
 
 /** 卡片头那行统计：单账号与合并模式各自的口径，不混着写 */
 const statsLine = computed(() => {
@@ -587,13 +625,25 @@ async function confirmSheet() {
           <i class="chev" :class="{ up: zopen }">▾</i>
         </button>
         <div class="zpanel" v-if="zopen" role="listbox" aria-label="选择站点">
+          <!-- 站点多了之后在下拉里滚很费劲：超过 5 个就给个检索框，按站点名 / ID / 账号名筛 -->
+          <div class="zsearch" v-if="zoneTotal > 5">
+            <input
+              v-model="zoneQuery"
+              class="field"
+              placeholder="搜索站点 / 账号"
+              spellcheck="false"
+              autocomplete="off"
+              aria-label="搜索站点"
+            />
+            <span v-if="zoneQuery" class="small muted">{{ zoneMatchCount }} 个匹配</span>
+          </div>
           <template v-if="agg.on">
             <button class="zopt" :class="{ on: !aggZoneKey }" role="option" :aria-selected="!aggZoneKey" @click="aggZoneKey = ''; zopen = false">
               <i class="zdot" />
               <span class="zopt-name">全部站点</span>
               <span class="zopt-st">{{ aggZoneCount }} 个</span>
             </button>
-            <div v-for="g in aggZoneGroups" :key="'zg-' + g.acc" class="zgrp">
+            <div v-for="g in aggZoneGroupsFiltered" :key="'zg-' + g.acc" class="zgrp">
               <div class="zgrp-h">{{ g.accName }}</div>
               <button
                 v-for="z in g.zones" :key="g.acc + '|' + z.id"
@@ -607,10 +657,13 @@ async function confirmSheet() {
               </button>
             </div>
             <div v-if="aggLoading && !aggZoneCount" class="small muted" style="padding: 8px 10px">正在读取站点…</div>
+            <div v-else-if="!aggLoading && !aggZoneGroupsFiltered.length" class="small muted" style="padding: 8px 10px">
+              没有匹配的站点
+            </div>
           </template>
           <template v-else>
             <button
-              v-for="z in zones.data || []" :key="z.id"
+              v-for="z in zonesFiltered" :key="z.id"
               class="zopt" :class="{ on: String(z.id) === zoneId }"
               role="option" :aria-selected="String(z.id) === zoneId"
               @click="zoneId = String(z.id); zopen = false"
@@ -619,6 +672,9 @@ async function confirmSheet() {
               <span class="zopt-name">{{ z.name }}</span>
               <span class="zopt-st">{{ z.status || "" }}</span>
             </button>
+            <div v-if="!zonesFiltered.length" class="small muted" style="padding: 8px 10px">
+              {{ zones.loading ? "正在读取站点…" : "没有匹配的站点" }}
+            </div>
           </template>
         </div>
       </div>
@@ -673,10 +729,9 @@ async function confirmSheet() {
         {{ g.project }} · Pages 自定义域名读取失败：{{ g.err.hint }}
       </div>
 
-      <!-- 搜索：只要不止一条就出现。原来卡在「> 6 行」，5 个域名时反而没有入口，
-           想按域名筛一下只能靠肉眼扫。 -->
-      <div class="row" style="margin: 8px 0 10px; gap: 8px" v-if="mergedRows.length > 1">
-        <input v-model="hostSearch" class="field" style="max-width: 320px" placeholder="搜索域名 / 记录内容 / Worker / Pages" />
+      <!-- 搜索：域名多于一条、或单个域名下记录很多时出现；输入后行内记录也一起收窄 -->
+      <div class="row" style="margin: 8px 0 10px; gap: 8px" v-if="showHostSearch">
+        <input v-model="hostSearch" class="field" style="max-width: 320px" placeholder="搜索域名 / 记录名 / 记录值" spellcheck="false" autocomplete="off" />
         <span v-if="hostSearch" class="small muted">{{ filteredRows.length }} 条匹配</span>
       </div>
 
@@ -724,7 +779,7 @@ async function confirmSheet() {
 
           <!-- 记录行分两段：上行「类型 + 值」，下行「TTL / 代理 + 动作」。
                长值（DKIM 公钥这类几百字符）默认折成两行，点「展开」才铺全 —— 卡片高度因此一致。 -->
-          <div v-for="r in row.records" :key="'dns-' + r.id" class="hline two">
+          <div v-for="r in recsOf(row)" :key="'dns-' + r.id" class="hline two">
             <div class="hl-top">
               <span class="badge">{{ r.type }}</span>
               <span
@@ -868,8 +923,16 @@ async function confirmSheet() {
 .zname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .chev { font-style: normal; font-size: var(--t-2xs); color: var(--muted); transition: transform .15s ease; }
 .chev.up { transform: rotate(180deg); }
-.zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 250px; max-width: 86vw;
+.zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: min(340px, 86vw);
+  max-height: 60vh; overflow-y: auto;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px; }
+/* 站点检索：粘在清单顶部，滚很远也不丢输入框 */
+.zsearch { position: sticky; top: -5px; z-index: 1; display: flex; align-items: center; gap: 8px;
+  padding: 6px 5px 8px; margin: -5px -5px 4px; background: var(--panel); border-bottom: 1px solid var(--line-soft); }
+.zsearch .field { flex: 1; min-width: 0; height: 32px; padding: 0 10px; font-size: var(--t-sm);
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); color: inherit; }
+.zsearch .field:focus-visible { outline: 2px solid rgb(var(--accent-rgb)); outline-offset: 1px; }
+.zsearch .muted { flex: none; white-space: nowrap; }
 .zopt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 9px; border: 0;
   border-radius: var(--r-sm); background: none; color: inherit; font-size: var(--t-sm); cursor: pointer; text-align: left; }
 .zopt:hover { background: var(--panel-2); }

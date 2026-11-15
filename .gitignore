@@ -26,3 +26,6 @@ docs/evidence/text-responses.json
 .DS_Store
 .idea/
 .vscode/
+
+# Capacitor 原生工程由 `cap add android` 在构建时生成，不入库；图标/启动图素材在 app/console/resources
+app/console/android/

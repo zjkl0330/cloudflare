@@ -6,6 +6,8 @@
  * 交给 main.css 里 `@media (prefers-color-scheme: dark) { :root:not([data-theme]) }` 那段兜底接管，
  * 这样没有 JS 也会跟着系统走；一旦用户显式选浅/深，就写死 data-theme 覆盖掉。
  */
+import { syncSystemBars } from "./nativebar";
+
 const KEY = "cfconsole.theme.v1";
 
 export type ThemePref = "system" | "light" | "dark";
@@ -40,6 +42,8 @@ export function applyTheme(pref: ThemePref): void {
   const el = document.documentElement;
   if (pref === "light" || pref === "dark") el.dataset.theme = pref;
   else el.removeAttribute("data-theme");
+  // 原生壳里把系统状态栏/导航栏也切到同一档（网页模式是空操作）
+  void syncSystemBars();
 }
 
 /* ============================================================================

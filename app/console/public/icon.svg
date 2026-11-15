@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="96" fill="#0b1220"/>
-  <path d="M150 330h224a74 74 0 0 0 12-147 104 104 0 0 0-196-42 84 84 0 0 0-40 189z"
-        fill="none" stroke="#f6821f" stroke-width="26" stroke-linejoin="round" stroke-linecap="round"/>
-  <circle cx="256" cy="256" r="60" fill="none" stroke="#35c48b" stroke-width="18"/>
-  <path d="M256 216v40l28 18" fill="none" stroke="#35c48b" stroke-width="18" stroke-linecap="round"/>
+  <!-- Cloudflare 云朵标志（官方 mark 的裁剪 viewBox，去掉文字），白底圆角，供 PWA / 主屏图标用 -->
+  <rect width="512" height="512" rx="96" fill="#ffffff"/>
+  <svg x="65" y="170" width="382" height="172" viewBox="54.4 3.2 49.2 22.6" preserveAspectRatio="xMidYMid meet">
+    <path fill="#ffffff" d="M98.6 14.2L93 12.9l-1-.4-25.7.2v12.4l32.3.1z"/>
+    <path fill="#f48120" d="M88.1 24c.3-1 .2-2-.3-2.6-.5-.6-1.2-1-2.1-1.1l-17.4-.2c-.1 0-.2-.1-.3-.1-.1-.1-.1-.2 0-.3.1-.2.2-.3.4-.3l17.5-.2c2.1-.1 4.3-1.8 5.1-3.8l1-2.6c0-.1.1-.2 0-.3-1.1-5.1-5.7-8.9-11.1-8.9-5 0-9.3 3.2-10.8 7.7-1-.7-2.2-1.1-3.6-1-2.4.2-4.3 2.2-4.6 4.6-.1.6 0 1.2.1 1.8-3.9.1-7.1 3.3-7.1 7.3 0 .4 0 .7.1 1.1 0 .2.2.3.3.3h32.1c.2 0 .4-.1.4-.3l.3-1.1z"/>
+    <path fill="#faad3f" d="M93.6 12.8h-.5c-.1 0-.2.1-.3.2l-.7 2.4c-.3 1-.2 2 .3 2.6.5.6 1.2 1 2.1 1.1l3.7.2c.1 0 .2.1.3.1.1.1.1.2 0 .3-.1.2-.2.3-.4.3l-3.8.2c-2.1.1-4.3 1.8-5.1 3.8l-.2.9c-.1.1 0 .3.2.3h13.2c.2 0 .3-.1.3-.3.2-.8.4-1.7.4-2.6 0-5.2-4.3-9.5-9.5-9.5"/>
+  </svg>
 </svg>
