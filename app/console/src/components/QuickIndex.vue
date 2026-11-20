@@ -19,9 +19,11 @@ type Item = { ico: string; title: string; sub: string; to: string; k: string };
 
 const ITEMS: Item[] = [
   { ico: "globe", title: "域名与 DNS", sub: "站点列表 → DNS 记录、Worker / Pages 绑定、路由", to: "/domains", k: "zone dns 记录 解析 域名 站点" },
+  { ico: "search", title: "DNS 搜索与筛选", sub: "按域名、记录值、类型、仅代理收窄", to: "/domains", k: "dns 搜索 筛选 类型 代理 记录" },
   { ico: "refresh", title: "缓存清理", sub: "站点 → 缓存页，按 URL 清理边缘缓存", to: "/domains", k: "purge cache 缓存 清理" },
   { ico: "shield", title: "WAF / 防火墙规则", sub: "站点 → WAF 页，只读查看托管规则", to: "/domains", k: "waf 防火墙 安全 规则" },
   { ico: "settings", title: "站点配置向导与测速", sub: "站点 → 工具页，DNS 向导和 itdog 测速", to: "/domains", k: "向导 测速 itdog 工具" },
+  { ico: "traffic", title: "站点测速（itdog）", sub: "站点详情顶部，或 DNS 每一行直接测速", to: "/domains", k: "测速 itdog ping 延迟 网络" },
   { ico: "compute", title: "计算 · Workers", sub: "Worker 列表、版本、域名、变量、绑定、定时器", to: "/compute?kind=workers", k: "worker workers 版本 部署 绑定 secret" },
   { ico: "board", title: "计算 · Pages", sub: "项目详情、部署历史、回滚、环境变量、构建日志", to: "/compute?kind=pages", k: "pages 项目 部署 回滚 构建" },
   { ico: "traffic", title: "看板 · 流量", sub: "请求 / 带宽 / 缓存 / 国家与主机分布", to: "/board", k: "流量 看板 统计 analytics 请求" },

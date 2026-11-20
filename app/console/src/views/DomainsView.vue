@@ -128,17 +128,6 @@ function switchZone(z: any) {
   zopen.value = false;
   nav.replace("/domains/" + encodeURIComponent(String(z.id)));
 }
-/** 站点 id 来自路由；没有参数 = 列表 */
-watch(() => route.params.zone, (id) => {
-  const next = String(id ?? "");
-  if (!next) { zoneId.value = ""; return; }
-  pane.value = paneFromUrl();
-  if (zoneId.value !== next) {
-    zoneId.value = next;
-  } else {
-    loadZone();
-  }
-}, { immediate: true });
 watch(() => agg.on, (on) => { if (on) nav.replace("/domains"); });
 /** 深链里的 zone id 不属于当前账号（或已被删）就退回列表，不把空详情留在屏幕上 */
 watch([() => zones.value.data, isDetail], () => {
@@ -172,8 +161,9 @@ function speedHost(): string {
     .split(/[/?#]/)[0]
     .trim();
 }
-async function openSpeedTest() {
-  const host = speedHost();
+async function openSpeedTest(target?: string) {
+  const host = String(target ?? speedHost()).trim()
+    .replace(/^[a-z]+:\/\//i, "").split(/[/?#]/)[0].trim();
   if (!host) return;
   const url = `https://www.itdog.cn/ping/${encodeURIComponent(host)}/?auto_submit=1`;
   // 网页模式开新标签；APK 里 window.open 会被 WebView 吞掉，用 Capacitor Browser 打开系统浏览器
@@ -184,6 +174,9 @@ async function openSpeedTest() {
 /** 编辑器的当前对象：record=编辑、preset=向导带过来的新增预填、都空=空白新增 */
 const editorRecord = ref<Record<string, any> | null>(null);
 const editorPreset = ref<{ type?: string; name?: string } | null>(null);
+/** 路由编辑器：声明必须在下面的 immediate 路由 watcher 之前，否则切站点时会踩 TDZ */
+const routeOpen = ref(false);
+const routeEditing = ref<any | null>(null);
 
 /** 本机写开关：关了根本不出网（api 里 gwWrite 先查它）。默认关，符合 docs/13 §7.5「别摆没放行的入口」。
  *  开关的读写与文案统一在 WriteGate 组件里；这里只留状态给按钮的 disabled 判断用。 */
@@ -315,7 +308,23 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
 /** 顶栏「刷新当前屏」（lib/bus）：各屏不再自备右上角刷新键 */
 watch(reloadTick, () => { void refresh(); });
 async function refresh() { forceFreshWindow(); if (agg.on) { await loadAgg(); } else { await loadTop(); await loadZone(); } }
-watch(zoneId, () => { if (agg.on) return; editorOpen.value = false; editorRecord.value = null; editorPreset.value = null; routeOpen.value = false; routeEditing.value = null; loadZone(); });
+/**
+ * 站点 id 的唯一来源是路由（2026-11-21）：深链、前进后退、下拉切换都走这里。
+ * 刷新进来时 zoneId 还是空串，必须在 immediate 里直接 loadZone，不能等 zoneId 的 watcher
+ * （那个 watcher 注册得比这里晚，首次赋值会被漏掉，表现为"详情页 0 条 DNS 记录"）。
+ */
+watch(() => route.params.zone, (id) => {
+  const next = String(id ?? "");
+  if (!next) { zoneId.value = ""; return; }
+  pane.value = paneFromUrl();
+  zoneId.value = next;
+  editorOpen.value = false;
+  editorRecord.value = null;
+  editorPreset.value = null;
+  routeOpen.value = false;
+  routeEditing.value = null;
+  loadZone();
+}, { immediate: true });
 
 const zoneName = computed(() => (zones.value.data ?? []).find((z: any) => String(z.id) === zoneId.value)?.name ?? "");
 const currentZone = computed(() => (zones.value.data ?? []).find((z: any) => String(z.id) === zoneId.value) ?? null);
@@ -462,32 +471,54 @@ function toggleVal(row: HostRow, r: any): void {
 
 const hostSearch = ref("");
 const hostQ = computed(() => hostSearch.value.trim().toLowerCase());
-const filteredRows = computed(() => {
+/** 类型 / 代理两个快筛：不用记语法，点一下就收窄 */
+const DNS_TYPES = ["ALL", "A", "AAAA", "CNAME", "TXT", "MX", "NS", "其他"] as const;
+const DNS_LABEL: Record<string, string> = { ALL: "全部", "其他": "其他" };
+const dnsType = ref<string>("ALL");
+const onlyProxied = ref(false);
+const COMMON_TYPES = new Set(["A", "AAAA", "CNAME", "TXT", "MX", "NS", "SRV", "CAA", "HTTPS"]);
+const filterOn = computed(() => !!hostQ.value || dnsType.value !== "ALL" || onlyProxied.value);
+
+function typeHit(r: any): boolean {
+  if (dnsType.value === "ALL") return true;
+  const t = String(r?.type ?? "").toUpperCase();
+  if (dnsType.value === "其他") return !COMMON_TYPES.has(t);
+  return t === dnsType.value;
+}
+
+/** 行内记录：先吃类型/代理，再看搜索词；域名本身命中时保留整行 */
+function recsOf(row: HostRow): any[] {
+  let recs = row.records;
+  if (dnsType.value !== "ALL") recs = recs.filter(typeHit);
+  if (onlyProxied.value) recs = recs.filter((r) => !!r.proxied);
   const q = hostQ.value;
-  if (!q) return mergedRows.value;
-  return mergedRows.value.filter((row) =>
-    row.host.toLowerCase().includes(q)
-    || row.accName.toLowerCase().includes(q)
-    || row.records.some((r) => String(r.content ?? "").toLowerCase().includes(q) || String(r.type ?? "").toLowerCase().includes(q))
-    || row.workers.some((w) => String(w.service ?? "").toLowerCase().includes(q))
-    || row.pages.some((p) => String(p.project ?? "").toLowerCase().includes(q))
-    || row.routes.some((rt) => String(rt.pattern ?? "").toLowerCase().includes(q) || String(rt.script ?? "").toLowerCase().includes(q)),
-  );
+  if (q && !row.host.toLowerCase().includes(q) && !row.accName.toLowerCase().includes(q)) {
+    const hit = recs.filter((r) => `${r.name ?? ""} ${r.type ?? ""} ${r.content ?? ""}`.toLowerCase().includes(q));
+    if (hit.length) recs = hit;
+  }
+  return recs;
+}
+
+const filteredRows = computed(() => {
+  if (!filterOn.value) return mergedRows.value;
+  const q = hostQ.value;
+  return mergedRows.value.filter((row) => {
+    if (recsOf(row).length) return true;
+    // 类型/代理筛选开着时，没有匹配记录的行就收起来；搜索词命中域名或绑定才保留
+    if (q && (row.host.toLowerCase().includes(q) || row.accName.toLowerCase().includes(q))) return true;
+    if (!q) return false;
+    return row.workers.some((w) => String(w.service ?? "").toLowerCase().includes(q))
+      || row.pages.some((p) => String(p.project ?? "").toLowerCase().includes(q))
+      || row.routes.some((rt) => String(rt.pattern ?? "").toLowerCase().includes(q) || String(rt.script ?? "").toLowerCase().includes(q));
+  });
 });
 
-/** 单个域名下也可能有几十条记录：行数只有 1 但记录多时同样给搜索框 */
-const showHostSearch = computed(
-  () => mergedRows.value.length > 1 || mergedRows.value.reduce((n, r) => n + r.records.length, 0) > 8,
-);
+const visibleRecordCount = computed(() => filteredRows.value.reduce((n, row) => n + recsOf(row).length, 0));
 
-/** 搜的是记录内容时，行内也把不相干的记录收起来 —— 否则搜到一条值，整段记录还得肉眼再扫一遍。
- *  域名 / 账号本身就命中时保持整行完整；一条记录都没命中也不过滤，免得误报"没有记录"。 */
-function recsOf(row: HostRow): any[] {
-  const q = hostQ.value;
-  if (!q) return row.records;
-  if (row.host.toLowerCase().includes(q) || row.accName.toLowerCase().includes(q)) return row.records;
-  const hit = row.records.filter((r) => `${r.name ?? ""} ${r.type ?? ""} ${r.content ?? ""}`.toLowerCase().includes(q));
-  return hit.length ? hit : row.records;
+function resetDnsFilters() {
+  hostSearch.value = "";
+  dnsType.value = "ALL";
+  onlyProxied.value = false;
 }
 
 /** 卡片头那行统计：单账号与合并模式各自的口径，不混着写 */
@@ -581,7 +612,8 @@ function onDelete(r: any) {
 function onWizardSuggest(s: { zoneId: string; type: string; name: string }) {
   wizardOpen.value = false;
   if (s.zoneId && s.zoneId !== zoneId.value) {
-    zoneId.value = s.zoneId; // watch 会 loadZone 并把编辑器关掉，所以下一步用 microtask 再开
+    // 换到记录所属站点；路由 watcher 会 loadZone 并把编辑器关掉，所以下一步用 microtask 再开
+    nav.replace(`/domains/${encodeURIComponent(s.zoneId)}?pane=dns`);
     setTimeout(() => { editorRecord.value = null; editorPreset.value = { type: s.type, name: s.name }; editorOpen.value = true; }, 0);
   } else {
     editorRecord.value = null; editorPreset.value = { type: s.type, name: s.name }; editorOpen.value = true;
@@ -591,8 +623,6 @@ function onWizardSuggest(s: { zoneId: string; type: string; name: string }) {
 /* ---------- 站点 Workers 路由：新增 / 改 / 删 ----------
  * 上游 POST/PUT/DELETE `/zones/{z}/workers/routes`，body {pattern, script|null}。
  * 这条写需要令牌带 Workers Routes Write（docs/05）；缺权限时 CF 回 403，错误原样留在抽屉里。 */
-const routeOpen = ref(false);
-const routeEditing = ref<any | null>(null);
 const routePattern = ref("");
 const routeScript = ref("");
 const routeErr = ref("");
@@ -717,6 +747,7 @@ async function confirmSheet() {
           <div class="dname">{{ currentZoneName || "站点" }}</div>
           <div class="dsub">{{ zoneSummary }}</div>
         </div>
+        <button class="ghost sm zspeed" :disabled="!currentZoneName" @click="openSpeedTest()">测速</button>
         <div class="zdd" ref="zddEl">
           <button class="zbtn" :aria-expanded="zopen" aria-haspopup="listbox" @click.stop="zopen = !zopen">
             切换<i class="chev" :class="{ up: zopen }">▾</i>
@@ -766,9 +797,23 @@ async function confirmSheet() {
           {{ g.project }} · Pages 自定义域名读取失败：{{ g.err.hint }}
         </div>
 
-        <div class="row zsearch-row" v-if="showHostSearch">
-          <input v-model="hostSearch" class="field" placeholder="搜索域名 / 记录名 / 记录值" spellcheck="false" autocomplete="off" />
-          <span v-if="hostSearch" class="small muted">{{ filteredRows.length }} 条匹配</span>
+        <div class="dns-filters" v-if="mergedRows.length || agg.on">
+          <div class="cfind">
+            <Icon name="search" :size="14" />
+            <input v-model="hostSearch" placeholder="搜索域名 / 记录值 / Worker / Pages" spellcheck="false" autocomplete="off" />
+            <button v-if="hostSearch" class="clr" aria-label="清空搜索" @click="hostSearch = ''">×</button>
+          </div>
+          <div class="dchips">
+            <button
+              v-for="t in DNS_TYPES" :key="t" class="chip"
+              :class="{ on: dnsType === t }" @click="dnsType = t"
+            >{{ DNS_LABEL[t] || t }}</button>
+            <button class="chip" :class="{ on: onlyProxied }" @click="onlyProxied = !onlyProxied">仅代理</button>
+            <button v-if="filterOn" class="chip clear" @click="resetDnsFilters">清除</button>
+          </div>
+          <div class="small muted dns-count" v-if="filterOn">
+            {{ filteredRows.length }} 个域名 · {{ visibleRecordCount }} 条记录
+          </div>
         </div>
 
         <div v-if="editorOpen" class="editor">
@@ -810,6 +855,7 @@ async function confirmSheet() {
               <span v-if="row.workers.length" class="badge blue">Worker</span>
               <span v-if="row.pages.length" class="badge blue">Pages</span>
               <span v-if="row.routes.length" class="badge">路由</span>
+              <button class="linkbtn hspeed" type="button" @click="openSpeedTest(row.host)">测速</button>
             </div>
 
             <div v-for="r in recsOf(row)" :key="'dns-' + r.id" class="hline two">
@@ -860,7 +906,7 @@ async function confirmSheet() {
           </div>
         </div>
         <div v-else-if="!listLoading" class="empty">
-          {{ hostSearch ? "没有匹配的域名" : agg.on ? "这些账号里还没有 DNS 记录或绑定" : "这个站点还没有 DNS 记录或绑定" }}
+          {{ filterOn ? "没有匹配的 DNS 记录或绑定" : agg.on ? "这些账号里还没有 DNS 记录或绑定" : "这个站点还没有 DNS 记录或绑定" }}
         </div>
         <div v-else class="empty">加载中…</div>
         <div class="whyline" v-if="doneMsg">{{ doneMsg }}</div>
@@ -913,7 +959,7 @@ async function confirmSheet() {
           <h3>测速（itdog）</h3>
           <div class="gen">
             <input v-model="speedTarget" class="field" placeholder="example.com 或 IP" spellcheck="false" autocomplete="off" />
-            <button class="primary" :disabled="!speedHost()" @click="openSpeedTest">打开 itdog 测速</button>
+            <button class="primary" :disabled="!speedHost()" @click="openSpeedTest()">打开 itdog 测速</button>
           </div>
           <p class="small muted" style="margin-top: 6px">
             默认填当前站点，可改成任意域名 / IP。打开后 itdog 自动开始 ping，节点与线路由 itdog 决定，结果只在那个页面里，本机不回显。
@@ -1064,6 +1110,22 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
   background: var(--panel); color: var(--muted); font-size: var(--t-2xs); line-height: 1.5;
   border-radius: var(--r-sm);
 }
+
+/* ---------- DNS 搜索与快筛 ---------- */
+.dns-filters { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 9px; }
+.cfind {
+  display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 9px;
+  background: var(--inset); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted);
+}
+.cfind input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--fg); font: inherit; font-size: var(--t-sm); }
+.cfind input::-webkit-search-cancel-button { display: none; }
+.cfind .clr { border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 2px; cursor: pointer; }
+.cfind .clr:hover { color: var(--fg); }
+.dchips { display: flex; gap: 5px; flex-wrap: wrap; }
+.dchips .chip { flex: none; }
+.dchips .chip.clear { color: var(--brand-ink); border-color: var(--accent); }
+.dns-count { margin-top: -1px; }
+.hspeed { margin-left: auto; flex: none; font-size: var(--t-2xs); }
 
 /* ---------- 站点详情头 + 功能分段 ---------- */
 .dtop { display: flex; align-items: center; gap: 9px; margin: 2px 0 10px; }

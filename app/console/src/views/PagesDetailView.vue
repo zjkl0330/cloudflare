@@ -20,6 +20,7 @@
 import { computed, nextTick, onMounted, ref, watch, type Ref } from "vue";
 import { reloadTick } from "../lib/bus";
 import { useRoute, useRouter } from "vue-router";
+import { Browser } from "@capacitor/browser";
 import ConfirmSheet from "../components/ConfirmSheet.vue";
 import ErrorNote from "../components/ErrorNote.vue";
 import WriteGate from "../components/WriteGate.vue";
@@ -28,6 +29,7 @@ import {
   api,
   forceFreshWindow,
   GwError,
+  isNativeApp,
   previewPageDomainAdd,
   previewPageDomainDelete,
   previewPageEnv,
@@ -122,6 +124,15 @@ const STATUS_MAP: Record<string, string> = {
   canceled: "已取消",
   skipped: "已跳过",
 };
+/** 域名行联动：有 zone id 就直接进 DNS，否则至少能测速 */
+function goZone(id: string) {
+  nav.push(`/domains/${encodeURIComponent(id)}?pane=dns`);
+}
+async function speedTest(host: string) {
+  const url = `https://www.itdog.cn/ping/${encodeURIComponent(host)}/?auto_submit=1`;
+  if (!isNativeApp()) { window.open(url, "_blank", "noopener"); return; }
+  try { await Browser.open({ url }); } catch { window.open(url, "_blank", "noopener"); }
+}
 function statusText(v: unknown): string {
   const k = String(v ?? "");
   return STATUS_MAP[k] ?? (k || "—");
@@ -491,7 +502,6 @@ function refresh() {
         <h2 class="wname">{{ name }}</h2>
         <span class="small muted">Pages · 项目</span>
       </div>
-      <button class="ghost sm" type="button" @click="nav.push('/compute')">← 计算</button>
     </div>
 
     <div class="row jn">
@@ -677,8 +687,10 @@ function refresh() {
               <span v-else>pages.dev 子域不在这份列表里，它始终可用</span>
             </div>
           </div>
-          <div class="v small">
+          <div class="v small" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
             <span v-if="d.status" class="badge" :class="{ live: d.status === 'active' }">{{ d.status === "active" ? "已生效" : statusText(d.status) }}</span>
+            <button v-if="d.zone_id || d.zone_tag" class="ghost sm" type="button" @click="goZone(String(d.zone_id || d.zone_tag))">DNS</button>
+            <button class="ghost sm" type="button" @click="speedTest(String(d.name || d.domain))">测速</button>
             <button
               class="ghost sm danger"
               type="button"
@@ -689,12 +701,9 @@ function refresh() {
         </div>
       </div>
       <div v-else-if="!domains.err" class="empty">
-        {{ domains.loading ? "加载中" : "没有自定义域名。临时项目实测：空项目这里返回 []。" }}
+        {{ domains.loading ? "加载中" : "没有自定义域名。" }}
       </div>
-      <div class="small muted" style="margin-top: 8px">
-        增删都要先打开「部署历史」卡片上的本机写开关；发出前 ConfirmSheet 会回显要发的请求，删除还要手打域名。
-        上游形状 2026-10-22 在临时项目上实测（建后即删，无残留）。
-      </div>
+      <div class="small muted" style="margin-top: 8px">增删前需要打开「部署历史」卡上的本机写开关。</div>
     </div>
 
     <details class="foldcard" id="c-env">
@@ -828,10 +837,6 @@ function refresh() {
 /* 卡片标题在 .row 里时（部署历史那张）也要落到同一档眉题 */
 .card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
   font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
-.card > .row > h3::before {
-  content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
-  background: var(--accent); box-shadow: none;
-}
 
 /* 部署历史：行内徽章允许换行，但徽章自身不拆字；左栏吃掉剩余宽度，别让右栏把 ID 挤成两行 */
 .item-wrap .item > div:first-child { flex: 1; }

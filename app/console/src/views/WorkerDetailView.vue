@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch, type Ref } from "vue";
 import { reloadTick } from "../lib/bus";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { Browser } from "@capacitor/browser";
 import ConfirmSheet from "../components/ConfirmSheet.vue";
 import ErrorNote from "../components/ErrorNote.vue";
 import FoldNote from "../components/FoldNote.vue";
@@ -15,6 +16,7 @@ import {
   api,
   forceFreshWindow,
   GwError,
+  isNativeApp,
   previewWorkerDomainAttach,
   previewWorkerDomainDetach,
   previewWorkerSubdomain,
@@ -24,7 +26,17 @@ import {
 import { dt, num, rel, shortId } from "../lib/fmt";
 
 const route = useRoute();
+const nav = useRouter();
 const name = computed(() => String(route.params.s ?? ""));
+/** 域名行联动：DNS（站点详情）与 itdog 测速；两条都不在本页发请求 */
+function goZone(id: string) {
+  nav.push(`/domains/${encodeURIComponent(id)}?pane=dns`);
+}
+async function speedTest(host: string) {
+  const url = `https://www.itdog.cn/ping/${encodeURIComponent(host)}/?auto_submit=1`;
+  if (!isNativeApp()) { window.open(url, "_blank", "noopener"); return; }
+  try { await Browser.open({ url }); } catch { window.open(url, "_blank", "noopener"); }
+}
 
 type Slot<T> = { data: T | null; err: GwError | null; loading: boolean };
 const mk = <T,>(): Slot<T> => ({ data: null, err: null, loading: false });
@@ -521,7 +533,9 @@ function isLive(versionId: unknown): boolean {
               <span class="badge" :class="{ live: !!d.cert_id }">{{ d.cert_id ? "有证书" : "无证书记录" }}</span>
             </div>
           </div>
-          <div class="v small">
+          <div class="v small" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+            <button v-if="d.zone_id" class="ghost sm" type="button" @click="goZone(String(d.zone_id))">DNS</button>
+            <button class="ghost sm" type="button" @click="speedTest(String(d.hostname))">测速</button>
             <button class="ghost sm danger" type="button" :disabled="!optIn || busy" @click="askDetachDomain(d)">解绑</button>
           </div>
         </div>
@@ -786,10 +800,6 @@ function isLive(versionId: unknown): boolean {
 /* 卡片标题在 .row 里时（自定义域名那张）也要落到同一档眉题，别变成第二个大标题 */
 .card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
   font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
-.card > .row > h3::before {
-  content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
-  background: var(--accent); box-shadow: none;
-}
 
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }

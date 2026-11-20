@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { reloadTick, requestReload, setPageSub } from "../lib/bus";
 import { useRoute, useRouter } from "vue-router";
 import ErrorNote from "../components/ErrorNote.vue";
+import Icon from "../components/Icon.vue";
 import RowCard from "../components/RowCard.vue";
 import ComputeBoard from "../components/compute/ComputeBoard.vue";
 import GitConnectDialog from "../components/compute/GitConnectDialog.vue";
@@ -74,8 +75,11 @@ function exitAgg() {
 const workers = ref<any[]>([]);
 const workersErr = ref<GwError | null>(null);
 const workersLoading = ref(false);
-const wq = ref("");
+/** 计算页统一搜索：三个档位共用同一个词，避免"看板搜一次、Workers 再搜一次" */
+const q = ref("");
 const wsort = ref<"modified" | "name">("modified");
+const psort = ref<"recent" | "name">("recent");
+const bsort = ref<"recent" | "name">("recent");
 
 async function loadWorkers() {
   if (agg.on) return; // 合并模式由 loadAgg 统一取两列表
@@ -92,8 +96,10 @@ async function loadWorkers() {
 }
 
 const shownWorkers = computed(() => {
-  const s = wq.value.trim().toLowerCase();
-  const arr = s ? workers.value.filter((w) => workerName(w).toLowerCase().includes(s)) : [...workers.value];
+  const s = q.value.trim().toLowerCase();
+  const arr = s
+    ? workers.value.filter((w) => `${workerName(w)} ${w.__accName ?? ""}`.toLowerCase().includes(s))
+    : [...workers.value];
   return wsort.value === "name"
     ? arr.sort((a, b) => workerName(a).localeCompare(workerName(b)))
     : arr.sort((a, b) => String(b.modified_on || "").localeCompare(String(a.modified_on || "")));
@@ -163,6 +169,33 @@ async function loadPages() {
 }
 
 const hasProject = computed(() => pages.value.length > 0);
+
+/** Pages 搜索：项目名 / 分支 / 子域 / Git owner/repo 都能命中 */
+const shownPages = computed(() => {
+  const s = q.value.trim().toLowerCase();
+  const arr = s
+    ? pages.value.filter((p) => {
+        const src = pageSource(p);
+        return `${p.name ?? ""} ${p.production_branch ?? ""} ${p.subdomain ?? ""} ${p.__accName ?? ""} ${src ? src.owner + " " + src.repo : ""}`
+          .toLowerCase().includes(s);
+      })
+    : [...pages.value];
+  return psort.value === "name"
+    ? arr.sort((a, b) => String(a.name ?? "").localeCompare(String(b.name ?? "")))
+    : arr.sort((a, b) => String(pageLastActivity(b) || "").localeCompare(String(pageLastActivity(a) || "")));
+});
+
+const searchPlaceholder = computed(() => {
+  if (kind.value === "workers") return "搜索 Worker 名称或账号";
+  if (kind.value === "pages") return "搜索项目 / 分支 / 子域 / 仓库";
+  return "搜索 Worker、Pages、分支或子域";
+});
+const matchCount = computed(() => {
+  if (!q.value.trim()) return 0;
+  if (kind.value === "workers") return shownWorkers.value.length;
+  if (kind.value === "pages") return shownPages.value.length;
+  return shownWorkers.value.length + shownPages.value.length;
+});
 
 /* ---------- Pages / Workers 连接 Git 仓库（2026-11-02） ----------
  * Pages 是真写（PATCH 项目对象，仅 APK 直连）；Workers 也是真写（Workers Builds API，
@@ -304,6 +337,34 @@ function toggleClean(w: string) {
       <button class="chip" :class="{ on: kind === 'pages' }" @click="kind = 'pages'">Pages</button>
     </div>
 
+    <!-- 统一搜索：三个档位共用一个输入框，排序键跟着当前档位走 -->
+    <div class="ctools">
+      <div class="cfind">
+        <Icon name="search" :size="14" />
+        <input v-model="q" :placeholder="searchPlaceholder" spellcheck="false" autocomplete="off" />
+        <button v-if="q" class="clr" aria-label="清空搜索" @click="q = ''">×</button>
+      </div>
+      <button
+        v-if="kind === 'workers'"
+        class="chip"
+        :title="wsort === 'modified' ? '当前按修改时间排序' : '当前按名称排序'"
+        @click="wsort = wsort === 'modified' ? 'name' : 'modified'"
+      >{{ wsort === "modified" ? "按修改时间" : "按名称" }}</button>
+      <button
+        v-else-if="kind === 'pages'"
+        class="chip"
+        :title="psort === 'recent' ? '当前按最近部署排序' : '当前按名称排序'"
+        @click="psort = psort === 'recent' ? 'name' : 'recent'"
+      >{{ psort === "recent" ? "按最近部署" : "按名称" }}</button>
+      <button
+        v-else
+        class="chip"
+        :title="bsort === 'recent' ? '当前按最近改动排序' : '当前按名称排序'"
+        @click="bsort = bsort === 'recent' ? 'name' : 'recent'"
+      >{{ bsort === "recent" ? "按最近改动" : "按名称" }}</button>
+      <span v-if="q.trim()" class="small muted">{{ matchCount }} 条匹配</span>
+    </div>
+
     <!-- 合并视图（只读）：账号数、取数进度、逐账号失败都在这里说清 -->
     <div v-if="agg.on" class="aggbar">
       <div class="aggtop">
@@ -333,23 +394,14 @@ function toggleClean(w: string) {
       :p-err="pagesErr"
       :loading="workersLoading || pagesLoading"
       :agg="agg.on"
+      :query="q"
+      :sort="bsort"
     />
 
     <!-- Workers 区块（逐项动手时才展开） -->
     <div class="card plain" v-if="kind === 'workers'">
-      <h3>Workers（{{ workers.length }} 个）</h3>
+      <h3>Workers（{{ q.trim() ? shownWorkers.length + " / " + workers.length : workers.length }} 个）</h3>
       <ErrorNote :err="workersErr" />
-      <div v-if="workers.length" style="margin-bottom: 10px">
-        <div class="row wtool">
-          <input v-model="wq" class="field" placeholder="搜索 Worker 名称" />
-          <!-- 排序并成一个键：两个 chip 只切一个状态，占一行不值当 -->
-          <button
-            class="chip"
-            :title="wsort === 'modified' ? '当前按修改时间排序，点一下改成按名称' : '当前按名称排序，点一下改成按修改时间'"
-            @click="wsort = wsort === 'modified' ? 'name' : 'modified'"
-          >{{ wsort === "modified" ? "按修改时间" : "按名称" }}</button>
-        </div>
-      </div>
       <div class="empty" v-if="workersLoading && !shownWorkers.length">加载中…</div>
       <div class="rows" v-if="shownWorkers.length">
         <!-- max=10：9 张分区卡 + 「仓库」全部露出，只剩没实现的「日志」收进更多 -->
@@ -372,7 +424,7 @@ function toggleClean(w: string) {
         />
       </div>
       <div v-else-if="!workersLoading && !workersErr" class="empty">
-        {{ agg.on ? "这些账号里都没有 Worker" : "这个账号里没有 Worker" }}
+        {{ q.trim() ? "没有匹配的 Worker" : agg.on ? "这些账号里都没有 Worker" : "这个账号里没有 Worker" }}
       </div>
     </div>
 
@@ -405,7 +457,7 @@ function toggleClean(w: string) {
 
     <!-- Pages 区块（逐项动手时才展开） -->
     <div class="card plain" v-if="kind === 'pages'">
-      <h3>Pages 项目（{{ pages.length }} 个）</h3>
+      <h3>Pages 项目（{{ q.trim() ? shownPages.length + " / " + pages.length : pages.length }} 个）</h3>
       <ErrorNote :err="pagesErr" />
 
       <div v-if="gitNote" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ gitNote }}</div>
@@ -416,9 +468,9 @@ function toggleClean(w: string) {
           : "这个账号还没有 Pages 项目（不是没取到：令牌能过 Pages 路由，缺的是数据）。后台建一个，这块立刻就有内容。" }}
       </div>
 
-      <div class="rows" v-if="hasProject">
+      <div class="rows" v-if="shownPages.length">
         <RowCard
-          v-for="p in pages"
+          v-for="p in shownPages"
           :key="(p.__acc || '') + String(p.name)"
           :title="String(p.name)"
           :meta="`${p.production_branch || '无分支'} • ${p.subdomain || '—'} • ${rel(pageLastActivity(p))}${pageDeployed(p) ? ' 部署' : ' 创建'}`"
@@ -432,6 +484,7 @@ function toggleClean(w: string) {
           @go="(a) => onProjectGo(p, a)"
         />
       </div>
+      <div v-else-if="hasProject && q.trim()" class="empty">没有匹配的 Pages 项目</div>
     </div>
 
     <!-- 两个仓库对话框：Pages 走 PATCH 项目对象，Workers 走 Workers Builds（都是真写） -->
@@ -460,9 +513,17 @@ function toggleClean(w: string) {
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
-/* 列表工具条：搜索框吃掉剩余宽度，排序键靠右 */
-.wtool { gap: 6px; margin-bottom: 8px; }
-.wtool .field { flex: 1; min-width: 0; max-width: 220px; }
+/* 统一搜索条：输入框吃掉剩余宽度，排序键与匹配数靠右 */
+.ctools { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; flex-wrap: wrap; }
+.cfind {
+  flex: 1 1 180px; min-width: 0; display: flex; align-items: center; gap: 6px;
+  height: 34px; padding: 0 9px; background: var(--inset);
+  border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted);
+}
+.cfind input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--fg); font: inherit; font-size: var(--t-sm); }
+.cfind input::-webkit-search-cancel-button { display: none; }
+.cfind .clr { border: 0; background: none; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 2px; cursor: pointer; }
+.cfind .clr:hover { color: var(--fg); }
 
 /* 版本清理的折叠卡：ghx 的分区眉题（大写字距 + 发丝线），不再套一层圆角壳。
    展开后内容照旧走全局 .card 的读数轨语义。 */

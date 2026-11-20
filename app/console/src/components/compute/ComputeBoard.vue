@@ -13,7 +13,7 @@
  *  · 「最近改动」两种资源不同源：Worker 用 modified_on，Pages 用最新部署的
  *    modified_on / created_on（列表里没有部署时退回项目 created_on）。
  */
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import type { GwError } from "../../lib/api";
 import { pageDeployed, pageLastActivity, workerName } from "../../lib/api";
@@ -28,6 +28,9 @@ const props = defineProps<{
   loading?: boolean;
   /** 多账号合一：清单项带 __acc / __accName，点进详情前要先切回所属账号 */
   agg?: boolean;
+  /** 搜索词与排序由计算页统一持有：三个档位共用一个输入框 */
+  query?: string;
+  sort?: "recent" | "name";
 }>();
 
 const nav = useRouter();
@@ -137,9 +140,9 @@ const latestRow = computed<BoardRow | null>(() =>
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const recent7 = computed(() => rows.value.filter((r) => r.lastMs > 0 && Date.now() - r.lastMs <= WEEK).length);
 
-/* ---------- 搜索 + 排序（与计算页列表同一套语汇，不另造控件） ---------- */
-const q = ref("");
-const sort = ref<"recent" | "name">("recent");
+/* ---------- 搜索 + 排序：由计算页统一传入 ---------- */
+const q = computed(() => String(props.query ?? ""));
+const sort = computed<"recent" | "name">(() => props.sort ?? "recent");
 const shownRows = computed(() => {
   const s = q.value.trim().toLowerCase();
   const arr = s
@@ -194,15 +197,6 @@ function open(r: BoardRow, c?: string) {
           <b class="bn">{{ num(recent7) }}</b>
           <span class="bs">合计 {{ rows.length }} 项</span>
         </div>
-      </div>
-
-      <div class="btool">
-        <input v-model="q" class="field" style="max-width: 200px" placeholder="搜索名称 / 分支 / 子域" />
-        <button
-          class="chip"
-          :title="sort === 'recent' ? '当前按最近改动排序，点一下改成按名称' : '当前按名称排序，点一下改成按最近改动'"
-          @click="sort = sort === 'recent' ? 'name' : 'recent'"
-        >{{ sort === "recent" ? "按最近改动" : "按名称" }}</button>
       </div>
 
       <div class="blist">
@@ -268,8 +262,6 @@ function open(r: BoardRow, c?: string) {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-.btool { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.btool .field { flex: 1 1 140px; width: auto; min-width: 0; max-width: 220px; }
 /* 不用全局 .rows：它带 8px gap，这里要的是连续行 + 分隔线 */
 .blist { display: flex; flex-direction: column; }
 

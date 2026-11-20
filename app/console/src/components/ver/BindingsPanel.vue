@@ -237,9 +237,7 @@ const noBindings = computed(() => !props.loading && !props.err && (props.binding
 
 <template>
   <div class="bind">
-    <div class="small muted">
-      绑定来自 <code>/settings</code> 的 <code>bindings[]</code>，按类型分类显示。编辑走 <code>PUT /settings</code> 的<b>全量覆盖</b>语义，提交前会在确认抽屉里摆出覆盖后的完整清单。
-    </div>
+    <div class="small muted">点一行去看它牵着的资源；保存是全量覆盖，提交前会让你确认。</div>
 
     <div class="row" style="justify-content: flex-end; gap: 8px">
       <button v-if="!editing" class="ghost sm" type="button" @click="startEdit">编辑绑定</button>
@@ -268,6 +266,7 @@ const noBindings = computed(() => !props.loading && !props.err && (props.binding
               <div class="k mono">{{ b.binding || b.name || "（无绑定名）" }}</div>
               <div class="small muted">{{ labelOf(b).sub }}</div>
             </div>
+            <span v-if="canGo(b)" class="go" aria-hidden="true">›</span>
           </div>
         </div>
       </section>
@@ -325,6 +324,7 @@ const noBindings = computed(() => !props.loading && !props.err && (props.binding
 .ttl { margin: 6px 0 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
   letter-spacing: .04em; text-transform: uppercase; }
 .mono { font-family: var(--font-num); }
+.go { flex: none; color: var(--muted); font-size: 16px; line-height: 1; }
 .errtext { color: var(--bad); }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
