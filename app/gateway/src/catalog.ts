@@ -239,9 +239,6 @@ export const writes = {
     }),
   kvDelete: (cf: CfClient, env: Env, ns: string, key: string) =>
     cf.rest(`/accounts/${ACC(env)}/storage/kv/namespaces/${encodeURIComponent(ns)}/values/${encodeURIComponent(key)}`, { method: "DELETE" }),
-  /** 读单个 Key 的文本值。上游回的是裸文本，cf.rest 会原样放进 data（不是 JSON 不解析） */
-  kvValue: (cf: CfClient, env: Env, ns: string, key: string) =>
-    cf.rest<string>(`/accounts/${ACC(env)}/storage/kv/namespaces/${encodeURIComponent(ns)}/values/${encodeURIComponent(key)}`),
   /**
    * Pages 回滚 / 重试。2026-10-21 临时项目实测：
    * POST …/deployments/{id}/rollback 空 body → 200，返回被切过去的部署对象；
@@ -1083,6 +1080,9 @@ export const reads = {
     if (cursor) q.set("cursor", cursor);
     return cf.rest(`/accounts/${ACC(env)}/storage/kv/namespaces/${encodeURIComponent(nsId)}/keys?${q.toString()}`, { unwrap: "list" });
   },
+  /** 读单个 Key 的文本值。上游回的是裸文本，cf.rest 会原样放进 data（不是 JSON 不解析） */
+  kvValue: (cf: CfClient, env: Env, ns: string, key: string) =>
+    cf.rest<string>(`/accounts/${ACC(env)}/storage/kv/namespaces/${encodeURIComponent(ns)}/values/${encodeURIComponent(key)}`),
   /**
    * R2 存储桶列表（数据库屏第三段）。2026-10-11 直连实测：这个账号 `GET /accounts/{a}/r2/bucket`
    * 返回 **404 `10015 No route matches this url`**，GraphQL 侧 `viewer.accounts.r2Buckets` 也是
