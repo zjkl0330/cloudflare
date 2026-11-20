@@ -15,8 +15,8 @@
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 
-/** 与 main.css 的 --bg 保持同一值：浅色 #ffffff / 深色 #0d1117 */
-const BAR_BG = { light: "#ffffff", dark: "#0d1117" } as const;
+/** 与 main.css 的 --bg 保持同一值：浅色 #f2f4fb / 深色 #060a15 */
+const BAR_BG = { light: "#f2f4fb", dark: "#060a15" } as const;
 
 /** 当前实际生效的是不是深色档（显式档优先，否则看系统媒体查询） */
 function isDarkNow(): boolean {

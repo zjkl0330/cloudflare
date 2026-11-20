@@ -787,8 +787,12 @@ function isLive(versionId: unknown): boolean {
 .kv dd { line-height: 1.55; word-break: normal; overflow-wrap: anywhere; }
 
 /* 卡片标题在 .row 里时（自定义域名那张）也要落到同一档眉题，别变成第二个大标题 */
-.card > .row > h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+.card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
+  font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
+.card > .row > h3::before {
+  content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
+  background: var(--grad-brand); box-shadow: var(--glow);
+}
 
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }

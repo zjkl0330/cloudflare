@@ -760,11 +760,13 @@ const notesOpen = ref(false);
 .agg-err { color: var(--bad); margin-top: 3px; }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 /* 工具栏：ghx 的紧凑分段（一体式底槽 + 选中实底），右侧只留数据年龄 */
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 12px; margin-bottom: 12px; }
 .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
 .seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer; transition: background .12s, color .12s; }
 .seg-b:hover { color: inherit; }
-.seg-b.on { background: var(--accent); color: var(--on-accent, #fff); font-weight: 600; }
+.seg-b.on { background: var(--grad-brand); color: var(--on-accent); font-weight: 650;
+  box-shadow: 0 3px 10px -2px rgb(var(--accent-rgb) / .5); }
 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .age { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ---------- 状态条：一行 + 左侧状态轨，点开才看详情 ---------- */
@@ -809,19 +811,33 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 /* ---------- 主表盘：一屏只有一个"主读数"，44px 起 ----------
    扁平：10 圆角 + 发丝线，不再用软投影把卡片从底面上抬起来。 */
 .dial {
-  position: relative; background: var(--panel);
-  border: 1px solid var(--line-soft); border-radius: var(--r-lg);
-  padding: 14px 14px 12px; margin-bottom: 12px;
+  position: relative; background:
+    radial-gradient(120% 90% at 100% 0%, rgb(var(--accent-rgb) / .12), transparent 58%),
+    var(--panel);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px 16px 14px; margin-bottom: 14px;
   overflow: hidden;
 }
+/* 主表盘右上角一枚很淡的品牌光晕，把"这是本屏主读数"这件事用光说，不用色块说 */
+.dial::after {
+  content: ""; position: absolute; right: -40px; top: -60px; width: 160px; height: 160px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgb(var(--accent-rgb) / .18), transparent 70%);
+  filter: blur(10px);
+}
 /* 主表盘不画左沿轨道：它本身就是"有数"，那道 2px 留给分块数据 */
-.dial-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.dial-h h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.dial-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dial-h h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
+.dial-h h3::before {
+  content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
+  background: var(--grad-brand); box-shadow: var(--glow);
+}
 .dial-at { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dial-v { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; }
 /* clamp：320px 窄屏上 "1,234,567" 用 44px 会溢出，按视口收，上限仍是 44 */
-.dial-n { font-family: var(--font-num); font-size: clamp(32px, 11vw, 44px); line-height: 1.05;
-  font-weight: 700; letter-spacing: -.03em; color: var(--fg); }
+.dial-n { font-family: var(--font-num); font-size: clamp(34px, 12vw, 46px); line-height: 1.05;
+  font-weight: 700; letter-spacing: -.035em; color: var(--fg);
+  font-variant-numeric: tabular-nums; }
 .dial-u { font-size: var(--t-sm); color: var(--muted); font-family: var(--font-num); }
 .dial-d { margin-top: 3px; font-size: var(--t-xs); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
 .dial-d.up { color: var(--ok); }

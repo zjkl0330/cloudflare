@@ -873,8 +873,9 @@ async function clearGitTok(p: GitPlatform) {
 .opt-h { font-size: var(--t-xs); color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
 /* 强调色预览点：这是"选项本身"的固定色，不是界面当前色，所以写字面值 */
 .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; border: 1px solid rgb(0 0 0 / .18); }
-.dot[data-a="orange"] { background: #a8480a; }
-.dot[data-a="blue"] { background: #1e5cc8; }
+/* 这两个点是"选项色卡"，必须写死对应的品牌色，不能跟着当前 --accent 变（否则选蓝后橙色项也变蓝） */
+.dot[data-a="orange"] { background: #f6821f; }
+.dot[data-a="blue"] { background: #3fb6ff; }
 /* 令牌输入的圆点遮罩：type=password 会唤起 WebView 的"安全键盘"（第三方输入法失效、
    粘贴被拦），所以输入框永远是 type=text，遮罩用 -webkit-text-security 实现。
    浏览器不支持这个属性时输入会显示明文 —— 有"显示/隐藏"按钮兜底，可接受。 */

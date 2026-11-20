@@ -54,6 +54,16 @@ const tabs = [
 
 const activeTab = computed(() => String(route.meta.tab ?? "board"));
 const title = computed(() => String(route.meta.title ?? "CF 控制台"));
+/** 顶栏副题：当前屏的英文口径（大写、10px、宽字距），和主标题一起构成 appbar 的两行 */
+const SUBTITLES: Record<string, string> = {
+  domains: "EDGE DNS",
+  compute: "WORKERS & PAGES",
+  board: "ANALYTICS",
+  database: "STORAGE",
+  zt: "ZERO TRUST",
+  settings: "SETTINGS",
+};
+const subtitle = computed(() => SUBTITLES[activeTab.value] ?? "EDGE CONSOLE");
 /** 设置齿轮是开关：不在设置页就进，已经在设置页就返回上一页（看板/详情页原路返回） */
 function toggleSettings() {
   if (activeTab.value === "settings") nav.back();
@@ -134,10 +144,17 @@ async function saveRename(a: CfAccount) {
 
 <template>
   <div class="shell">
+    <!-- 环境光：三团光斑压在深空蓝底上。纯装饰，不参与布局，也不吃点击。 -->
+    <div class="ambient" aria-hidden="true"><span class="orb o1" /><span class="orb o2" /><span class="orb o3" /></div>
+
     <header class="topbar">
       <div class="brand">
+        <span class="logo-mark"><Icon name="cloud" :size="19" /></span>
+        <span class="brand-tx">
+          <b>{{ title }}</b>
+          <small>{{ subtitle }}</small>
+        </span>
         <span class="dot" :class="{ off: !gw.configured }" />
-        <b>{{ title }}</b>
       </div>
       <!-- 顶栏三件套（2026-10-25）：账号胶囊（仅直连）/ 刷新当前屏 / 设置。
            各自只做一件事，原来散在各屏右上角的 6 个「刷新」键收进这里。 -->
@@ -213,7 +230,10 @@ async function saveRename(a: CfAccount) {
     <nav class="tabbar" aria-label="主导航">
       <!-- 桌面档底栏转成左栏后，栏顶要有个名字压阵（不然五个键孤零零贴在浏览器边上）。
            手机档 display:none，不占网格格，所以底栏那 5 列的判定一个字没动。 -->
-      <span class="rail-brand">CF 控制台</span>
+      <span class="rail-brand">
+        <span class="logo-mark sm"><Icon name="cloud" :size="15" /></span>
+        CF 控制台
+      </span>
       <button
         v-for="t in tabs"
         :key="t.key"

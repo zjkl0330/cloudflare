@@ -833,8 +833,12 @@ function refresh() {
 .kv dd { line-height: 1.55; word-break: normal; overflow-wrap: anywhere; }
 
 /* 卡片标题在 .row 里时（部署历史那张）也要落到同一档眉题 */
-.card > .row > h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+.card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
+  font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
+.card > .row > h3::before {
+  content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
+  background: var(--grad-brand); box-shadow: var(--glow);
+}
 
 /* 部署历史：行内徽章允许换行，但徽章自身不拆字；左栏吃掉剩余宽度，别让右栏把 ID 挤成两行 */
 .item-wrap .item > div:first-child { flex: 1; }

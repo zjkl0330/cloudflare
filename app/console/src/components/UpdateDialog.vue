@@ -26,13 +26,14 @@ defineEmits<{ close: [] }>();
 
 <style scoped>
 .upd-mask { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgb(0 0 0 / .45); padding: 20px; }
-.upd { width: min(380px, 92vw); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg);
-  padding: 18px; box-shadow: 0 16px 48px rgb(0 0 0 / .18); }
+.upd { width: min(380px, 92vw); background: var(--bg-elev); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 18px; box-shadow: var(--e-2); }
 .upd h3 { margin: 0 0 6px; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .btns a { display: inline-block; height: 34px; line-height: 32px; padding: 0 13px; border-radius: var(--r-sm);
   font-size: var(--t-sm); text-decoration: none; cursor: pointer; }
-.btns a.primary { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.btns a.primary { background: var(--grad-brand); color: #fff; font-weight: 650;
+  box-shadow: 0 8px 22px -8px rgb(var(--accent-rgb) / .6); }
 .btns a.ghost { border: 1px solid var(--line); color: var(--fg-2); background: var(--panel-2); }
 .later { margin-top: 12px; background: none; border: 0; color: var(--muted); font-size: var(--t-2xs); cursor: pointer; text-decoration: underline; }
 </style>

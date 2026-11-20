@@ -96,8 +96,9 @@ const consequence = computed(() => {
 /* 底部抽屉：ghx 口径 —— 10 圆角、发丝线、86vh 上限、顶部 grab 条；不用投影把层抬起来 */
 .sheet {
   width: 100%; max-width: 640px; max-height: 86vh; overflow: auto;
-  background: var(--panel); color: var(--fg);
+  background: var(--bg-elev); color: var(--fg);
   border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: 0 -18px 50px rgba(3, 8, 20, .32);
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 10px;
 }
@@ -131,10 +132,11 @@ const consequence = computed(() => {
 }
 .sheet-type { display: flex; flex-direction: column; gap: 6px; font-size: var(--t-xs); color: var(--muted); }
 .sheet-type input {
-  height: 36px; padding: 0 10px; border-radius: var(--r-sm); font-size: var(--t-sm);
-  border: 1px solid var(--line); background: var(--panel-2); color: inherit; font-family: inherit;
+  height: 38px; padding: 0 12px; border-radius: 10px; font-size: var(--t-sm);
+  border: 1px solid var(--line); background: var(--inset); color: inherit; font-family: inherit;
+  outline: none; transition: border-color .16s ease, box-shadow .16s ease;
 }
-.sheet-type input:focus { outline: none; border-color: var(--accent); }
+.sheet-type input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgb(var(--accent-rgb) / .2); }
 .sheet-err {
   margin: 0; font-size: var(--t-xs); line-height: 1.6; color: var(--bad);
   padding: 8px 10px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
