@@ -592,9 +592,6 @@ const notesOpen = ref(false);
           {{ k.label }}
         </button>
       </div>
-      <div class="tl">
-        <span v-if="updatedAt" class="age">{{ updatedAt }} · {{ sourceNote }}</span>
-      </div>
     </div>
 
     <ErrorNote :err="err" />
@@ -639,7 +636,7 @@ const notesOpen = ref(false);
       >
         <MetricTile
           :label="t.label" :value="t.value" :unit="t.unit" :note="t.note" :caliber="t.caliber"
-          :current="t.current" :prev="t.prev" :better-up="t.betterUp" hideable @hide="toggleTile(t.id)"
+          :current="t.current" :prev="t.prev" :better-up="t.betterUp"
         />
       </AsyncBlock>
     </div>
@@ -659,6 +656,7 @@ const notesOpen = ref(false);
         <span class="tw">{{ notesOpen ? "收起" : caliberNote ? "展开 · 卡片与曲线这次对不齐" : prevSkipped ? "展开 · 上一窗在 CF 保留期外" : prevAbsent ? "展开 · 环比：网关未提供" : "展开" }}</span>
       </button>
       <div class="notes-b" v-if="notesOpen">
+        <div class="n" v-if="updatedAt">{{ updatedAt }} · {{ sourceNote }}</div>
         <div class="n" v-if="agg.on">
           合并视图发 {{ aggAccounts().length }} 条 /v1/overview（每账号一条），按自然日、时间点、状态码、国家分别相加。
           某个账号没取到时合计只含其余账号，缺谁写在上方状态条里 —— 不把缺的那份当 0 混进来。
@@ -754,32 +752,30 @@ const notesOpen = ref(false);
 
 <style scoped>
 /* 合并视图的状态条：与域名/计算页同一条强调色左轨，不再包一整只描边盒 */
-.aggbar { border: 0; border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+.aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 /* 工具栏：ghx 的紧凑分段（一体式底槽 + 选中实底），右侧只留数据年龄 */
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  padding: 10px 12px; margin-bottom: 12px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 0; margin-bottom: 10px; background: transparent; border: 0; box-shadow: none; }
+.srcnote { margin: -2px 2px 10px; font-size: var(--t-2xs); color: var(--muted); line-height: 1.5; }
 .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
 .seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer; transition: background .12s, color .12s; }
 .seg-b:hover { color: inherit; }
-.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 650; box-shadow: 0 0 0 1px var(--line); }
+.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 650; box-shadow: 0 1px 2px rgba(31, 35, 40, .08); }
 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .age { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ---------- 状态条：一行 + 左侧状态轨，点开才看详情 ---------- */
 .statline {
   display: flex; align-items: center; gap: 8px; width: 100%;
   margin: 2px 0 10px; padding: 9px 11px;
-  background: var(--panel); border: 1px solid var(--line-soft);
-  border-left: 3px solid var(--muted); border-radius: var(--r-sm);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-sm);
   text-align: left; font: inherit; color: var(--fg-2); cursor: pointer;
 }
-.statline.lv-ok { border-left-color: var(--ok); }
-.statline.lv-warn { border-left-color: var(--warn); }
-.statline.lv-bad { border-left-color: var(--bad); }
 .sd { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
 .lv-ok .sd { background: var(--ok); }
 .lv-warn .sd { background: var(--warn); }

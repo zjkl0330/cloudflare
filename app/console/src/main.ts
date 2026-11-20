@@ -3,6 +3,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
 import { watchSystemTheme } from "./lib/theme";
+import { applyAppearance, loadAppearance } from "./lib/appearance";
 import { loadConfig, saveConfig } from "./lib/config";
 import "./styles/main.css";
 
@@ -27,6 +28,7 @@ if (import.meta.env.DEV) {
  */
 // 挂载前先把外观档落好，避免深色下白闪一屏（MASTER.md §7）
 watchSystemTheme();
+applyAppearance(loadAppearance());
 
 const app = createApp(App);
 app.use(createPinia());

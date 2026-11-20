@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Browser } from "@capacitor/browser";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { reloadTick, requestReload, setPageSub } from "../lib/bus";
 import ErrorNote from "../components/ErrorNote.vue";
@@ -94,25 +94,58 @@ const aggZoneSel = computed(() => {
 /* ---------- 站点检索：站点一多，下拉里一条条翻比记名字还慢 ----------
  * 只筛切换器里的清单，不动已选站点、不发请求；匹配站点名 / zone id / 账号名。 */
 const zoneQuery = ref("");
-/** 域名页现在是两级：先站点列表，点进去才是这个站点的 DNS / 缓存 / WAF / 工具 / 状态 */
-const zoneView = ref<"list" | "detail">("list");
+/**
+ * 域名页是真正的两级路由（2026-11-20）：
+ *   /domains          → 站点列表
+ *   /domains/:zone    → 站点详情，pane 写在 ?pane= 里
+ * 这样 Android 返回键、浏览器后退、刷新、分享链接都落在同一个位置；
+ * 之前用本地 ref 切列表/详情，返回键会直接把整屏退掉。
+ */
 type Pane = "dns" | "cache" | "waf" | "tools" | "status";
-const pane = ref<Pane>("dns");
+const PANES: Pane[] = ["dns", "cache", "waf", "tools", "status"];
+const route = useRoute();
+const nav = useRouter();
+const isDetail = computed(() => !!route.params.zone);
+function paneFromUrl(): Pane {
+  const p = String(route.query.pane ?? "");
+  return (PANES as string[]).includes(p) ? (p as Pane) : "dns";
+}
+const pane = ref<Pane>(paneFromUrl());
+function setPane(p: Pane) {
+  pane.value = p;
+  nav.replace({ query: p === "dns" ? {} : { pane: p } });
+}
+watch(() => route.query.pane, () => { const p = paneFromUrl(); if (p !== pane.value) pane.value = p; });
+
+/** 列表点进详情：压一层历史，返回键正好回列表 */
 function openZone(z: any) {
-  const next = String(z.id);
-  if (zoneId.value === next) { zoneView.value = "detail"; pane.value = "dns"; zopen.value = false; return; }
-  zoneId.value = next;
-  zoneView.value = "detail";
-  pane.value = "dns";
   zopen.value = false;
   zoneQuery.value = "";
+  nav.push("/domains/" + encodeURIComponent(String(z.id)));
 }
-function backToList() {
-  zoneView.value = "list";
+/** 详情里换站点：换掉当前这一层，不要留一长串同构历史 */
+function switchZone(z: any) {
   zopen.value = false;
+  nav.replace("/domains/" + encodeURIComponent(String(z.id)));
 }
-/** 合并视图只读且没有「当前站点」，退出时回到站点列表，别停在上一轮的详情上 */
-watch(() => agg.on, (on) => { if (!on) zoneView.value = "list"; });
+/** 站点 id 来自路由；没有参数 = 列表 */
+watch(() => route.params.zone, (id) => {
+  const next = String(id ?? "");
+  if (!next) { zoneId.value = ""; return; }
+  pane.value = paneFromUrl();
+  if (zoneId.value !== next) {
+    zoneId.value = next;
+  } else {
+    loadZone();
+  }
+}, { immediate: true });
+watch(() => agg.on, (on) => { if (on) nav.replace("/domains"); });
+/** 深链里的 zone id 不属于当前账号（或已被删）就退回列表，不把空详情留在屏幕上 */
+watch([() => zones.value.data, isDetail], () => {
+  const arr = zones.value.data;
+  if (!arr || !isDetail.value) return;
+  if (!arr.some((z: any) => String(z.id) === zoneId.value)) nav.replace("/domains");
+});
 const zoneQ = computed(() => zoneQuery.value.trim().toLowerCase());
 const zonesFiltered = computed(() => {
   const q = zoneQ.value;
@@ -267,7 +300,7 @@ async function loadZone() {
   ]);
 }
 
-onMounted(async () => { await loadTop(); if (zoneView.value === "detail") await loadZone(); });
+onMounted(async () => { await loadTop(); });
 
 /* ---------- 站点下拉：展开/收起 + 点外面关闭 ---------- */
 const zopen = ref(false);
@@ -290,14 +323,20 @@ const currentZone = computed(() => (zones.value.data ?? []).find((z: any) => Str
 const nsOf = (z: any): string[] => (Array.isArray(z?.vanity_name_servers) && z.vanity_name_servers.length
   ? z.vanity_name_servers : z?.name_servers) ?? [];
 const planOf = (z: any): string => z?.plan?.name || z?.plan?.legacy_id || "套餐未知";
+const ZONE_STATE: Record<string, string> = {
+  active: "已生效", pending: "待激活", initializing: "初始化中", paused: "已暂停",
+  deactivated: "已停用", moved: "已迁移", pending_deletion: "待删除", deleted: "已删除",
+};
+const zoneState = (s: unknown): string => ZONE_STATE[String(s ?? "").toLowerCase()] || String(s ?? "未知");
 const wafCount = computed(() => waf.value.data?.ruleCount ?? 0);
 
 /** 顶栏副题：列表页说站点数，详情页说当前站点的套餐与 NS */
-watch([() => zones.value.data, zoneView, currentZoneName], () => {
+watch([() => zones.value.data, isDetail, currentZoneName, pane], () => {
   if (agg.on) { setPageSub(`${aggAccounts().length} 个账号 · 只读合并`); return; }
   const arr = zones.value.data ?? [];
-  if (zoneView.value === "detail" && currentZone.value) {
-    setPageSub(`${planOf(currentZone.value)} · NS ${nsOf(currentZone.value).length} 条`);
+  if (isDetail.value && currentZone.value) {
+    // 详情页自己的头已经写了站点名与状态，顶栏不再加副题
+    setPageSub("");
   } else {
     setPageSub(arr.length ? `${arr.length} 个站点 · ${arr.filter((z: any) => z.status === "active").length} 个已生效` : "站点与 DNS");
   }
@@ -308,7 +347,7 @@ const zoneSummary = computed(() => {
   const z: any = currentZone.value;
   if (!z) return "";
   const ns = (Array.isArray(z.vanity_name_servers) && z.vanity_name_servers.length ? z.vanity_name_servers : z.name_servers) ?? [];
-  return `${z.status || "未知状态"} · ${z.plan?.name || z.plan?.legacy_id || "套餐未知"} · NS ${ns.length} 条`;
+  return `${zoneState(z.status)} · ${planOf(z)} · NS ${ns.length} 条`;
 });
 const router = useRouter();
 
@@ -646,9 +685,9 @@ async function confirmSheet() {
     </div>
 
     <!-- ========== 一级：站点列表 ========== -->
-    <template v-if="!agg.on && zoneView === 'list'">
+    <template v-if="!agg.on && !isDetail">
       <div class="list-head">
-        <span class="lh-t">站点 <b>{{ zonesFiltered.length }}</b><span class="lh-s" v-if="zones.data">共 {{ zones.data.length }} 个</span></span>
+        <span class="lh-t">站点 <b>{{ zonesFiltered.length }}</b><span class="lh-s" v-if="zoneQuery.trim() && zones.data">/ 共 {{ zones.data.length }} 个</span></span>
         <button class="ghost sm" :disabled="zones.loading" @click="refresh">{{ zones.loading ? "刷新中…" : "刷新" }}</button>
       </div>
       <input
@@ -664,20 +703,16 @@ async function confirmSheet() {
             <span class="zrow-name">{{ z.name }}</span>
             <span class="zrow-meta">{{ planOf(z) }} · NS {{ nsOf(z).length }} 条 · {{ z.type === "partial" ? "CNAME 接入" : "完整接入" }}</span>
           </span>
-          <span class="badge" :class="{ live: z.status === 'active', roll: z.status === 'pending' }">{{ z.status || "未知" }}</span>
+          <span class="badge" :class="{ live: z.status === 'active', roll: z.status === 'pending' }">{{ zoneState(z.status) }}</span>
           <Icon class="zchev" name="chevron" :size="12" />
         </button>
       </div>
       <div class="empty" v-else-if="zones.data && !zones.err">没有匹配的站点</div>
-      <div class="hintline" v-if="zones.data?.length">
-        点一个站点进入：DNS、缓存清理、WAF、配置向导、测速都在里面。
-      </div>
     </template>
 
     <!-- ========== 二级：站点详情（或合并视图） ========== -->
     <template v-else>
       <div class="dtop" v-if="!agg.on">
-        <button class="zback" @click="backToList"><Icon name="back" :size="13" />站点</button>
         <div class="dtt">
           <div class="dname">{{ currentZoneName || "站点" }}</div>
           <div class="dsub">{{ zoneSummary }}</div>
@@ -691,11 +726,11 @@ async function confirmSheet() {
               v-for="z in zonesFiltered" :key="z.id"
               class="zopt" :class="{ on: String(z.id) === zoneId }"
               role="option" :aria-selected="String(z.id) === zoneId"
-              @click="openZone(z)"
+              @click="switchZone(z)"
             >
               <i class="zdot" :data-s="z.status || 'unknown'" />
               <span class="zopt-name">{{ z.name }}</span>
-              <span class="zopt-st">{{ z.status || "" }}</span>
+              <span class="zopt-st">{{ zoneState(z.status) }}</span>
             </button>
             <div v-if="!zonesFiltered.length" class="small muted" style="padding: 8px 9px">没有匹配的站点</div>
           </div>
@@ -703,15 +738,15 @@ async function confirmSheet() {
       </div>
 
       <div class="seg panes" v-if="!agg.on" role="tablist" aria-label="站点功能">
-        <button class="seg-b" :class="{ on: pane === 'dns' }" @click="pane = 'dns'">DNS</button>
-        <button class="seg-b" :class="{ on: pane === 'cache' }" @click="pane = 'cache'">缓存</button>
-        <button class="seg-b" :class="{ on: pane === 'waf' }" @click="pane = 'waf'">WAF</button>
-        <button class="seg-b" :class="{ on: pane === 'tools' }" @click="pane = 'tools'">工具</button>
-        <button class="seg-b" :class="{ on: pane === 'status' }" @click="pane = 'status'">状态</button>
+        <button class="seg-b" :class="{ on: pane === 'dns' }" @click="setPane('dns')">DNS</button>
+        <button class="seg-b" :class="{ on: pane === 'cache' }" @click="setPane('cache')">缓存</button>
+        <button class="seg-b" :class="{ on: pane === 'waf' }" @click="setPane('waf')">WAF</button>
+        <button class="seg-b" :class="{ on: pane === 'tools' }" @click="setPane('tools')">工具</button>
+        <button class="seg-b" :class="{ on: pane === 'status' }" @click="setPane('status')">状态</button>
       </div>
 
       <!-- DNS / 绑定 -->
-      <div class="card" v-if="agg.on || pane === 'dns'">
+      <div class="card plain" v-if="agg.on || pane === 'dns'">
         <div class="hd">
           <h3 style="margin: 0">{{ agg.on ? "域名与 DNS（合并 · 只读）" : "域名与 DNS" }}</h3>
           <div class="row" style="gap: 8px; align-items: center; flex-wrap: wrap" v-if="!agg.on">
@@ -992,8 +1027,8 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 .hcontent.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* 合并视图状态条：与看板/计算页同一条强调色左轨，不再包一整只描边盒 */
-.aggbar { border: 0; border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+.aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
@@ -1025,9 +1060,9 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 .zrow-meta { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zchev { flex: none; color: var(--muted); transform: rotate(-90deg); }
 .hintline {
-  margin-top: 12px; padding: 9px 11px; border-left: 3px solid var(--line);
+  margin-top: 12px; padding: 9px 11px; border: 1px solid var(--line-soft);
   background: var(--panel); color: var(--muted); font-size: var(--t-2xs); line-height: 1.5;
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  border-radius: var(--r-sm);
 }
 
 /* ---------- 站点详情头 + 功能分段 ---------- */

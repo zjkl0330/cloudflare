@@ -67,7 +67,7 @@ const bucketFold = useFold(() => shownBuckets.value);
 <template>
   <StoreSplit
     list-title="R2 存储桶"
-    :detail-title="selected ? `对象（${selected}）` : '未选择存储桶'"
+    :detail-title="selected ? `存储桶（${selected}）` : '未选择存储桶'"
     :pane="pane" :list-state="listState" detail-state="st-empty"
     v-model:search="q" search-placeholder="搜索存储桶名"
     @back="pane = 'list'"
@@ -112,7 +112,7 @@ const bucketFold = useFold(() => shownBuckets.value);
 
     <template #detail>
       <div class="card" v-if="current">
-        <h3>{{ current.name }}</h3>
+        <h3>桶信息</h3>
         <div class="kv">
           <dt>创建时间</dt><dd>{{ dt(current.creation_date, false) }}</dd>
           <dt>区域</dt><dd>{{ region(current) }}</dd>

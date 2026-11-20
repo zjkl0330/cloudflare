@@ -59,6 +59,15 @@ const anyErr = computed(() => [org, apps, groups, policies].some((s) => s.value.
 const view = ref<"apps" | "groups" | "policies" | "org">("apps");
 const q = ref("");
 const ql = computed(() => q.value.trim().toLowerCase());
+const APP_TYPE: Record<string, string> = {
+  self_hosted: "自建应用", saas: "SaaS", ssh: "SSH", vip: "VIP",
+  app_launcher: "应用启动器", bookmark: "书签", dash_sso: "控制台 SSO", warp: "WARP",
+};
+const DECISION: Record<string, string> = {
+  allow: "允许", deny: "拒绝", bypass: "绕过", non_identity: "无需身份", service_auth: "服务鉴权",
+};
+const appType = (t: unknown): string => APP_TYPE[String(t ?? "")] || String(t ?? "应用");
+const decision = (d: unknown): string => DECISION[String(d ?? "")] || String(d ?? "");
 const hit = (name: unknown, extra?: unknown): boolean => {
   if (!ql.value) return true;
   return `${name ?? ""} ${extra ?? ""}`.toLowerCase().includes(ql.value);
@@ -111,8 +120,8 @@ const configuredNothing = computed(
           <RowCard
             v-for="a in appsShown" :key="a.id || a.name"
             :title="a.name || a.domain || '（无名应用）'"
-            :meta="[a.domain, a.type].filter(Boolean).join(' · ')"
-            :badges="a.type ? [{ text: String(a.type) }] : []"
+            :meta="[a.domain, appType(a.type)].filter(Boolean).join(' · ')"
+            :badges="a.type ? [{ text: appType(a.type) }] : []"
             :openable="false"
           />
         </div>
@@ -139,8 +148,8 @@ const configuredNothing = computed(
           <RowCard
             v-for="p in policiesShown" :key="p.id"
             :title="p.name || '（无名策略）'"
-            :meta="[p.decision, p.precedence != null ? '优先级 ' + p.precedence : ''].filter(Boolean).join(' · ')"
-            :badges="p.decision ? [{ text: p.decision }] : []"
+            :meta="[decision(p.decision), p.precedence != null ? '优先级 ' + p.precedence : ''].filter(Boolean).join(' · ')"
+            :badges="p.decision ? [{ text: decision(p.decision) }] : []"
             :openable="false"
           />
         </div>

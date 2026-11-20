@@ -10,8 +10,16 @@
     <script>
       (function () {
         try {
+          var el = document.documentElement;
           var t = localStorage.getItem("cfconsole.theme.v1");
-          if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+          if (t === "light" || t === "dark") el.dataset.theme = t;
+          var ac = localStorage.getItem("cfconsole.accent.v1");
+          if (ac && ac !== "orange") el.dataset.accent = ac;
+          var ap = JSON.parse(localStorage.getItem("cfconsole.appearance.v1") || "null") || {};
+          el.dataset.tabbar = ap.tabbar === "float" ? "float" : "solid";
+          el.dataset.tablabel = ap.label === "icon" ? "icon" : "text";
+          el.dataset.bg = ap.bg === "glow" ? "glow" : "plain";
+          el.dataset.motion = ap.motion === "lite" ? "lite" : "full";
         } catch (e) { /* localStorage 不可用就默认跟随系统 */ }
       })();
     </script>

@@ -26,6 +26,8 @@ const native = isNativeApp();
 /* ---------- 冷启动两件静默事：识别展示部署 + 检查更新 ---------- */
 /** 发现新版本 → 弹 UpdateDialog（加速/直连双下载）；检查失败就当没有，不弹错误打扰人 */
 const updateInfo = ref<UpdateInfo | null>(null);
+/** 有更新时先只出一条通知条；点「查看」才弹原来的下载面板（启动不再被模态框挡住） */
+const showUpdate = ref(false);
 onMounted(async () => {
   // 展示部署探测：/health 报 demo=true 就免配置出数（失败静默，下次再试）
   if (!native && !gw.demo && !gw.configured) {
@@ -64,7 +66,7 @@ const SUBTITLES: Record<string, string> = {
   zt: "Cloudflare Access",
   settings: "账号、外观与本机",
 };
-const subtitle = computed(() => pageSub.value || SUBTITLES[activeTab.value] || "");
+const subtitle = computed(() => pageSub.value || (isRoot.value ? SUBTITLES[activeTab.value] || "" : ""));
 /** 一级页签：底栏只在这五屏出现；详情页走路由栈（顶部返回），不再压底栏 */
 const ROOT_NAMES = new Set(["domains", "compute", "board", "database", "zero-trust"]);
 const isRoot = computed(() => ROOT_NAMES.has(String(route.name ?? "")));
@@ -167,7 +169,7 @@ async function saveRename(a: CfAccount) {
           <b>{{ title }}</b>
           <small v-if="subtitle">{{ subtitle }}</small>
         </span>
-        <span class="dot" :class="{ off: !gw.configured }" />
+        <span v-if="!gw.configured" class="dot off" />
       </div>
       <!-- 顶栏三件套（2026-10-25）：账号胶囊（仅直连）/ 刷新当前屏 / 设置。
            各自只做一件事，原来散在各屏右上角的 6 个「刷新」键收进这里。 -->
@@ -186,7 +188,7 @@ async function saveRename(a: CfAccount) {
         <button class="tbtn" title="功能索引（能去哪）" aria-label="功能索引" @click="indexOpen = true">
           <Icon name="search" :size="14" />
         </button>
-        <button class="cfg" :class="{ on: activeTab === 'settings' }" :title="activeTab === 'settings' ? '返回' : '设置'" aria-label="设置" @click="toggleSettings"><Icon name="gear" :size="14" /></button>
+        <button class="cfg" :class="{ on: activeTab === 'settings' }" :title="activeTab === 'settings' ? '返回' : '设置'" aria-label="设置" @click="toggleSettings"><Icon name="settings" :size="14" /></button>
       </div>
 
       <!-- 账号下拉：每行 = 一个账号（别名优先），底部一条去设置管理。
@@ -226,6 +228,13 @@ async function saveRename(a: CfAccount) {
       </div>
     </header>
 
+    <div v-if="updateInfo && !showUpdate" class="updatebar">
+      <Icon name="refresh" :size="13" />
+      <span>新版本 <b>v{{ updateInfo.version }}</b> 可用</span>
+      <button class="ub-open" @click="showUpdate = true">查看</button>
+      <button class="ub-x" aria-label="关闭更新提示" @click="updateInfo = null">×</button>
+    </div>
+
     <main class="body">
       <div v-if="needSetup" class="gate">
         <template v-if="native">
@@ -241,7 +250,7 @@ async function saveRename(a: CfAccount) {
       <RouterView v-else />
     </main>
 
-    <UpdateDialog v-if="updateInfo" :info="updateInfo" @close="updateInfo = null" />
+    <UpdateDialog v-if="updateInfo && showUpdate" :info="updateInfo" @close="showUpdate = false" />
     <QuickIndex v-if="indexOpen" @close="indexOpen = false" />
 
     <nav v-if="isRoot" class="tabbar" aria-label="主导航">

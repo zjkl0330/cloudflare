@@ -47,9 +47,12 @@ const offNote = () => props.note || "写操作在这台设备上就被拦下，�
   </button>
 
   <!-- 卡片标题行里的紧凑版 -->
-  <label v-else-if="variant === 'inline'" class="wg-inline">
+  <label
+    v-else-if="variant === 'inline'" class="wg-inline"
+    :title="model ? '本机写开关已开：变更请求会真的发出' : '本机写开关关：写请求不会离开这台设备'"
+  >
     <input type="checkbox" class="switch" :checked="model" @change="toggle(($event.target as HTMLInputElement).checked)" />
-    <span>{{ model ? "写开关已开" : "写开关关" }}</span>
+    <span>{{ model ? "可写" : "只读" }}</span>
   </label>
 
   <!-- 整行版：标题 + 后果说明 -->
@@ -64,9 +67,13 @@ const offNote = () => props.note || "写操作在这台设备上就被拦下，�
 
 <style scoped>
 .wg-inline {
-  display: inline-flex; align-items: center; gap: 6px; flex: none;
-  font-size: var(--t-xs); color: var(--muted); white-space: nowrap; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px; flex: none; height: 28px; padding: 0 8px;
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel);
+  font-size: var(--t-2xs); color: var(--muted); white-space: nowrap; cursor: pointer;
 }
+.wg-inline .switch { width: 30px; height: 18px; }
+.wg-inline .switch::before { width: 12px; height: 12px; left: 2px; top: 2px; }
+.wg-inline .switch:checked::before { transform: translateX(12px); }
 .wg-bar {
   display: flex; flex-direction: column; gap: 3px;
   padding: 10px 12px; margin-bottom: 12px;

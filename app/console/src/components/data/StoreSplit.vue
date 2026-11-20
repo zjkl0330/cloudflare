@@ -74,20 +74,13 @@ const search = defineModel<string>("search", { default: "" });
   border-radius: var(--radius); overflow: hidden;
 }
 /* 左沿那道 2px 轨：颜色由外层 st-* 通过 --rail 打进来，和全站四态口径同一份事实 */
-.pane::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-  background: var(--rail, transparent);
-}
+.pane::before { content: none; }
 .pane.st-data { --rail: var(--rail-data); }
 .pane.st-pending { --rail: var(--rail-pending); }
 .pane.st-empty { --rail: repeating-linear-gradient(180deg, var(--rail-empty) 0 4px, transparent 4px 8px); }
 .pane.st-error { --rail: repeating-linear-gradient(180deg, var(--rail-error) 0 4px, transparent 4px 8px); }
 .pane.st-partial { --rail: repeating-linear-gradient(180deg, var(--rail-partial) 0 4px, transparent 4px 8px); }
-.pane.st-pending::after {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-  background-image: linear-gradient(180deg, transparent, var(--rail-pending), transparent);
-  background-size: 100% 200%; animation: split-feed 1.4s linear infinite;
-}
+.pane.st-pending::after { content: none; }
 @keyframes split-feed { from { background-position: 0 -100%; } to { background-position: 0 100%; } }
 
 .pane-h {
@@ -123,8 +116,8 @@ const search = defineModel<string>("search", { default: "" });
 .find .clr:hover { color: var(--accent); }
 
 .back {
-  display: none; background: none; border: 0; color: var(--accent); font-family: inherit;
-  font-size: var(--t-xs); padding: 0 4px 0 0; cursor: pointer; flex: none;
+  display: none; background: none; border: 0; color: var(--brand-ink); font-family: inherit;
+  font-size: var(--t-2xs); padding: 0 4px 0 0; cursor: pointer; flex: none; white-space: nowrap;
 }
 
 /* 窄屏：一屏只给一栏，选完自动进右栏，右栏顶部出返回 —— 见文件头"防串号"那段 */

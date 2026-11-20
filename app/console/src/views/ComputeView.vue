@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { reloadTick, requestReload, setPageSub } from "../lib/bus";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import ErrorNote from "../components/ErrorNote.vue";
 import RowCard from "../components/RowCard.vue";
 import ComputeBoard from "../components/compute/ComputeBoard.vue";
@@ -17,6 +17,7 @@ import { labelOf, type CfAccount } from "../lib/accounts";
 import { agg, aggAccounts, aggSkipped, focusAccount, mapLimit } from "../lib/aggregate";
 
 const nav = useRouter();
+const route = useRoute();
 
 
 /** 当前单账号 id：本机记录（Workers 仓库）按账号分开存 */
@@ -279,7 +280,11 @@ onMounted(() => {
 
 /** 顶部分段：默认「看板」= Workers + Pages 二合一（一块看板读完两类资源）；
  *  「Workers」/「Pages」两档才是逐项动手的完整列表。 */
-const kind = ref<"all" | "workers" | "pages">("all");
+const kind = ref<"all" | "workers" | "pages">(
+  route.query.kind === "workers" || route.query.kind === "pages" ? route.query.kind : "all",
+);
+/** 档位写进 URL：功能索引和分享链接可以直接落到 Workers / Pages */
+watch(kind, (v) => nav.replace({ query: v === "all" ? {} : { kind: v } }));
 
 /** 版本清理面板要处理的 Worker 集合：默认空，必须手动勾，绝不默认全选 */
 const cleanSel = ref<string[]>([]);
@@ -297,9 +302,6 @@ function toggleClean(w: string) {
       <button class="chip" :class="{ on: kind === 'all' }" @click="kind = 'all'">看板</button>
       <button class="chip" :class="{ on: kind === 'workers' }" @click="kind = 'workers'">Workers</button>
       <button class="chip" :class="{ on: kind === 'pages' }" @click="kind = 'pages'">Pages</button>
-    </div>
-    <div v-if="kind === 'all'" class="small muted" style="margin-bottom: 10px">
-      看板只汇总、不放逐项动作：要连接仓库请切到 Pages 分档（项目行第一个动作）或 Workers 分档（行内「仓库」）。
     </div>
 
     <!-- 合并视图（只读）：账号数、取数进度、逐账号失败都在这里说清 -->
@@ -320,7 +322,7 @@ function toggleClean(w: string) {
 
     <!-- 每日额度：接口只给事件数，请求数与上限的来源在这块内部各自标清（docs/09 §E16）。
          合并视图里额度只对当前账号有意义，故收起。 -->
-    <WorkersQuota v-if="kind !== 'pages' && !agg.on" :tick="quotaTick" />
+    <WorkersQuota v-if="kind === 'all' && !agg.on" :tick="quotaTick" />
 
     <!-- 二合一看看板：4 格合计 + 一份按最近改动并起来的清单（只用上面两条列表，不发额外请求） -->
     <ComputeBoard
@@ -334,13 +336,9 @@ function toggleClean(w: string) {
     />
 
     <!-- Workers 区块（逐项动手时才展开） -->
-    <div class="card" v-if="kind === 'workers'">
+    <div class="card plain" v-if="kind === 'workers'">
       <h3>Workers（{{ workers.length }} 个）</h3>
       <ErrorNote :err="workersErr" />
-      <div class="small muted" style="margin: 6px 0 10px">
-        Worker 行里的「仓库」连接 Workers Builds：选一个 Git 仓库、填构建/部署命令与 build token，推送后真的会构建并部署。
-        连接成功前不会显示 Git 徽章；端点按官方规格拼成，尚未在真实账号实测，错误会原样上屏。
-      </div>
       <div v-if="workers.length" style="margin-bottom: 10px">
         <div class="row wtool">
           <input v-model="wq" class="field" placeholder="搜索 Worker 名称" />
@@ -406,15 +404,10 @@ function toggleClean(w: string) {
     </details>
 
     <!-- Pages 区块（逐项动手时才展开） -->
-    <div class="card" v-if="kind === 'pages'">
+    <div class="card plain" v-if="kind === 'pages'">
       <h3>Pages 项目（{{ pages.length }} 个）</h3>
       <ErrorNote :err="pagesErr" />
 
-      <div class="small muted" style="margin: 6px 0 10px">
-        点项目行或下方任一动作进入项目详情：概览、部署历史（含回滚 / 重试 / 构建日志）、自定义域名、环境变量与构建配置。
-        「连接仓库」是把已有项目接到已有 Git 仓库，不新建项目；只有 APK 直连模式能发这条写请求。
-        已经连过 Git 的项目，行上会多一个「Git · owner/repo」徽章（来自项目对象的 source 字段；拿不到就不显示，不猜）。
-      </div>
       <div v-if="gitNote" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ gitNote }}</div>
 
       <div v-if="!hasProject && !pagesLoading && !pagesErr" class="small muted">
@@ -462,8 +455,8 @@ function toggleClean(w: string) {
 .segs { gap: 4px; margin: 0 0 12px; }
 
 /* 合并视图状态条：一条强调色左轨 + 浅底，不再画成一整张卡片 */
-.aggbar { border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  padding: 9px 11px; margin-bottom: 10px; background: rgb(var(--accent-rgb) / .06); }
+.aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }

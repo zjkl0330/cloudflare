@@ -53,16 +53,21 @@ export function applyTheme(pref: ThemePref): void {
  * ========================================================================== */
 const ACCENT_KEY = "cfconsole.accent.v1";
 
-export type AccentPref = "orange" | "blue";
+export type AccentPref = "orange" | "blue" | "purple" | "teal" | "green" | "pink";
 
 export const ACCENT_OPTIONS: { value: AccentPref; label: string }[] = [
-  { value: "orange", label: "橙（品牌）" },
-  { value: "blue", label: "蓝（控件）" },
+  { value: "orange", label: "橙" },
+  { value: "blue", label: "蓝" },
+  { value: "purple", label: "紫" },
+  { value: "teal", label: "青" },
+  { value: "green", label: "绿" },
+  { value: "pink", label: "粉" },
 ];
 
 export function loadAccentPref(): AccentPref {
   try {
-    return localStorage.getItem(ACCENT_KEY) === "blue" ? "blue" : "orange";
+    const v = localStorage.getItem(ACCENT_KEY);
+    return (ACCENT_OPTIONS.some((o) => o.value === v) ? v : "orange") as AccentPref;
   } catch {
     return "orange";
   }
@@ -78,11 +83,11 @@ export function saveAccentPref(pref: AccentPref): AccentPref {
   return pref;
 }
 
-/** 橙是默认档（不写属性，省得跟深浅档打架）；蓝显式写 data-accent */
+/** 橙是默认档（不写属性）；蓝/紫/青/绿/粉显式写 data-accent */
 export function applyAccent(pref: AccentPref): void {
   const el = document.documentElement;
-  if (pref === "blue") el.dataset.accent = "blue";
-  else el.removeAttribute("data-accent");
+  if (pref === "orange") el.removeAttribute("data-accent");
+  else el.dataset.accent = pref;
 }
 
 /**

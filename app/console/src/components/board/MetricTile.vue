@@ -129,15 +129,14 @@ function human(v: number): string {
 </script>
 
 <template>
-  <div class="mt">
+  <div class="mt" :title="caliber || undefined">
     <button v-if="hideable" class="x" title="隐藏这一格（会记住）" @click="emit('hide')">×</button>
     <Tile :label="label" :value="value" :note="note" />
     <div class="unit" v-if="unit">单位：{{ unit }}</div>
     <div class="delta" :class="band.tone" :title="prevRaw || undefined">
       <span>{{ band.text }}</span>
     </div>
-    <button v-if="caliber" class="cal" :aria-expanded="calOpen" @click="calOpen = !calOpen">{{ calOpen ? "收起口径" : "口径" }}</button>
-    <div class="cal-x" v-if="caliber && calOpen">{{ caliber }}</div>
+
   </div>
 </template>
 
@@ -160,10 +159,10 @@ function human(v: number): string {
 .cal-x { margin-top: 4px; font-size: var(--t-xs); line-height: 1.5; color: var(--muted);
   border-left: 2px solid var(--line); padding-left: 8px; }
 .x {
-  position: absolute; top: 8px; right: 8px; z-index: 2;
+  position: absolute; top: 6px; right: 6px; z-index: 2;
   width: 22px; height: 22px; line-height: 18px; padding: 0;
-  background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font-size: var(--t-md);
+  background: none; color: var(--muted); border: 0; opacity: .55;
+  border-radius: var(--r-sm); font-size: 15px;
 }
-.x:hover { color: var(--fg); border-color: var(--line); background: var(--panel-3); }
+.x:hover, .x:focus-visible { opacity: 1; color: var(--fg); background: var(--panel-2); }
 </style>

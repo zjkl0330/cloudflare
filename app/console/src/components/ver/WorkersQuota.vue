@@ -157,10 +157,10 @@ const windowLabel = computed(() => {
 .hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .hd > h3 { margin-bottom: 0; }
 /* 口径键退成小号幽灵键，跟列表行里的次级动作同一档 */
-.cal { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted);
-  height: 24px; padding: 0 8px; font-size: var(--t-2xs); cursor: pointer; flex: none; }
-.cal:hover { color: var(--accent); border-color: var(--accent-dim); }
-.cal-x { margin-top: 8px; border-left: 3px solid var(--line); background: var(--panel-2); border-radius: 0 var(--r-sm) var(--r-sm) 0;
+.cal { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: var(--t-2xs);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer; flex: none; }
+.cal:hover { color: var(--brand-ink); }
+.cal-x { margin-top: 8px; border: 1px solid var(--line-soft); background: var(--panel-2); border-radius: var(--r-sm);
   padding: 8px 10px; font-size: var(--t-xs); line-height: 1.6; color: var(--fg-2); }
 .cal-x p { margin: 0 0 6px; }
 .cal-x p:last-child { margin-bottom: 0; }

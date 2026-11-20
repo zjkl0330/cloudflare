@@ -557,9 +557,7 @@ function refresh() {
         <h3 style="margin: 0">部署历史（{{ deps.data?.length ?? 0 }} 条）</h3>
         <WriteGate v-model="optIn" variant="inline" />
       </div>
-      <div class="small muted" style="margin: 6px 0 8px">
-        点部署行展开完整信息；回滚与重试都要过两道闸门：这台设备的写开关（上面）→ 网关的 WRITE_ENABLED。开关关着时请求不会发出。
-      </div>
+      <div class="small muted" style="margin: 4px 0 8px">点一行展开详情；回滚 / 重试需要打开上面的写开关。</div>
       <div v-if="done" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ done }}</div>
       <ErrorNote :err="deps.err" />
 
@@ -754,14 +752,9 @@ function refresh() {
             <button class="chip" type="button" @click="addEnvRow">添加</button>
           </div>
           <p class="small errtext" v-if="envErr">{{ envErr }}</p>
-          <p class="small muted">
-            保存是**整表覆盖**：不在表里的键会被删除（删除只能靠「不传这个键」，传 null 实测只是把值置空）。
-            值从接口回显，secret_text 用密码框显示。
-          </p>
+          <p class="small muted">保存会覆盖整张表：不在表里的键会被删除。</p>
         </div>
-        <div class="small muted" style="margin-top: 8px" v-else>
-          只列键名，不展示值：接口虽然回明文，但这一屏经常被截图/投屏。点上面的按钮才进编辑态。
-        </div>
+        <div class="small muted" style="margin-top: 8px" v-else>值默认不显示，点「编辑」才展开。</div>
         <div class="list" v-if="buildCfg" style="margin-top: 10px">
           <div v-for="[k, v] in buildCfg" :key="String(k)" class="item">
             <div class="k">{{ k }}</div>

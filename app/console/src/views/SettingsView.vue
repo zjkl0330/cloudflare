@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import ErrorNote from "../components/ErrorNote.vue";
+import Icon from "../components/Icon.vue";
 import { setPageSub } from "../lib/bus";
 import UnavailableNote from "../components/board/UnavailableNote.vue";
 import { api, gwHealth, gwMeta, GwError, isNativeApp, setWritesOptIn, writesOptIn, probeToken, type Account } from "../lib/api";
@@ -10,6 +11,11 @@ import { baseSource } from "../lib/config";
 import { THEME_OPTIONS, loadThemePref, saveThemePref, type ThemePref, ACCENT_OPTIONS, loadAccentPref, saveAccentPref, type AccentPref } from "../lib/theme";
 import { LIST_PRESETS, listCount, setListCount } from "../lib/lists";
 import { boardPrefs, SUB_TILE_LABELS, toggleSubTile } from "../lib/boardPrefs";
+import {
+  loadAppearance, saveAppearance,
+  TABBAR_OPTIONS, LABEL_OPTIONS, BG_OPTIONS, MOTION_OPTIONS,
+  type Appearance,
+} from "../lib/appearance";
 import { dt } from "../lib/fmt";
 import { useGatewayStore } from "../stores/gateway";
 import { APP_VERSION, ACCEL_BASES, checkUpdate, type UpdateInfo } from "../lib/version";
@@ -48,6 +54,23 @@ const theme = ref<ThemePref>(loadThemePref());
 function setTheme(v: ThemePref) { theme.value = saveThemePref(v); }
 /* ---------- 强调色档：只换控件/选中态，读数轨四态编码不受影响（见 main.css [data-accent]） ---------- */
 const accent = ref<AccentPref>(loadAccentPref());
+/** 外观偏好（底栏形态 / 文字 / 背景 / 动效），和 theme 分两份存 */
+const look = ref<Appearance>(loadAppearance());
+function setLook(patch: Partial<Appearance>) {
+  look.value = saveAppearance({ ...look.value, ...patch });
+}
+/** 强调色色卡：写死的是"这个选项本身"的品牌色，不跟当前 accent 变 */
+const SWATCH: Record<AccentPref, string> = {
+  orange: "#f6821f", blue: "#0969da", purple: "#8250df",
+  teal: "#0d9488", green: "#1a7f37", pink: "#bf3989",
+};
+const DEMO_TABS = [
+  { ico: "globe", label: "域名" },
+  { ico: "compute", label: "计算" },
+  { ico: "board", label: "看板" },
+  { ico: "disc", label: "数据库" },
+  { ico: "shield", label: "Zero Trust" },
+];
 function setAccent(v: AccentPref) { accent.value = saveAccentPref(v); }
 const result = ref<{ health?: any; account?: string; error?: GwError }>({});
 /** 令牌可见的账号全量列表 + 网关本次实际用的那个（?account 没传时就是 env 里的默认账号） */
@@ -489,7 +512,7 @@ async function clearGitTok(p: GitPlatform) {
     </div>
     </details>
 
-    <details class="grp">
+    <details class="grp" open>
       <summary>外观与更新<span class="gs">深浅 · 强调色 · 列表条数 · 版本</span></summary>
 
     <!-- ============ 外观：深浅档 + 强调色档 ============ -->
@@ -508,15 +531,51 @@ async function clearGitTok(p: GitPlatform) {
         </div>
       </div>
       <div class="opt">
-        <div class="opt-h">强调色（控件 / 选中态）</div>
-        <div class="row">
+        <div class="opt-h">强调色</div>
+        <div class="row sws">
           <button
             v-for="opt in ACCENT_OPTIONS"
             :key="opt.value"
-            class="chip"
+            class="sw"
             :class="{ on: accent === opt.value }"
+            :style="{ background: SWATCH[opt.value] }"
+            :title="opt.label"
+            :aria-label="opt.label"
             @click="setAccent(opt.value)"
-          ><i class="dot" :data-a="opt.value" />{{ opt.label }}</button>
+          ><span v-if="accent === opt.value">✓</span></button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">底栏形态</div>
+        <div class="row">
+          <button v-for="o in TABBAR_OPTIONS" :key="o.value" class="chip" :class="{ on: look.tabbar === o.value }" @click="setLook({ tabbar: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">底栏文字</div>
+        <div class="row">
+          <button v-for="o in LABEL_OPTIONS" :key="o.value" class="chip" :class="{ on: look.label === o.value }" @click="setLook({ label: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">背景</div>
+        <div class="row">
+          <button v-for="o in BG_OPTIONS" :key="o.value" class="chip" :class="{ on: look.bg === o.value }" @click="setLook({ bg: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">动效</div>
+        <div class="row">
+          <button v-for="o in MOTION_OPTIONS" :key="o.value" class="chip" :class="{ on: look.motion === o.value }" @click="setLook({ motion: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">底栏预览</div>
+        <div class="preview" :class="{ float: look.tabbar === 'float', icons: look.label === 'icon' }">
+          <span v-for="(t, i) in DEMO_TABS" :key="t.label" class="pv" :class="{ on: i === 0 }">
+            <Icon :name="t.ico" :size="16" />
+            <span>{{ t.label }}</span>
+          </span>
         </div>
       </div>
       <div class="opt">
@@ -568,7 +627,7 @@ async function clearGitTok(p: GitPlatform) {
     </div>
     </details>
 
-    <details class="grp">
+    <details class="grp" open>
       <summary>账号与授权<span class="gs">{{ acctState.list.length }} 个账号</span></summary>
 
     <!-- ============ 账号（CF 令牌，本机保管）============ -->
@@ -771,7 +830,7 @@ async function clearGitTok(p: GitPlatform) {
     </div>
     </details>
 
-    <details class="grp">
+    <details class="grp" open>
       <summary>写操作与请求预算<span class="gs">本机开关 · 调度账本</span></summary>
 
     <!-- ============ 写闸门 ============ -->
@@ -837,7 +896,7 @@ async function clearGitTok(p: GitPlatform) {
     <div class="wide"><UnavailableNote /></div>
     </details>
 
-    <details class="grp">
+    <details class="grp" open>
       <summary>本机与边界<span class="gs">存了什么 · 能做什么</span></summary>
 
     <!-- ============ 说明 ============ -->
@@ -861,6 +920,34 @@ async function clearGitTok(p: GitPlatform) {
 </template>
 
 <style scoped>
+.sws { gap: 8px; }
+.sw {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; padding: 0;
+  display: inline-grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); cursor: pointer;
+}
+.sw.on { border-color: var(--fg); box-shadow: inset 0 0 0 2px var(--bg-2); }
+.preview {
+  position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 54px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-2); overflow: hidden;
+}
+.preview.float { border-radius: var(--r-pill); margin: 0 6px; }
+.pv {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  font-size: 9.5px; color: var(--muted);
+}
+.pv.on { color: var(--brand-ink); font-weight: 600; }
+.preview.icons .pv span { display: none; }
+.preview.icons .pv svg { width: 20px; height: 20px; }
+.pv.on::before {
+  content: ""; position: absolute; top: 0; left: 32%; right: 32%; height: 2px; border-radius: 0 0 2px 2px;
+  background: var(--accent);
+}
+.preview.float .pv.on::before {
+  top: 7px; bottom: 7px; left: 14%; right: 14%; height: auto; border-radius: var(--r-pill);
+  background: rgb(var(--accent-rgb) / .12);
+}
+
 /* 设置页排版（2026-10-25 改）：原来是 10 张卡平铺 + 宽屏两列。
    现在按用途切成 5 组折叠，**一律单列** —— 两列在手机上本来就没生效，
    在桌面上把"连接"和"外观"并排反而更难扫。组标题是眉题不是卡片（details 本身不画壳），

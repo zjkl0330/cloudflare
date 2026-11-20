@@ -21,6 +21,8 @@ export const router = createRouter({
   routes: [
     { path: "/", redirect: "/board" },
     { path: "/domains", name: "domains", component: DomainsView, meta: { tab: "domains", title: "域名" } },
+    // 站点详情：DNS / 缓存 / WAF / 工具 / 状态都在这一层，?pane= 记住当前分页
+    { path: "/domains/:zone", name: "zone", component: DomainsView, meta: { tab: "domains", title: "域名" } },
     { path: "/compute", name: "compute", component: ComputeView, meta: { tab: "compute", title: "计算" } },
     { path: "/board", name: "board", component: BoardView, meta: { tab: "board", title: "看板" } },
     // 看板二级页：补充指标 + 下钻 Top 20（2026-10-25 从首屏拆出，首屏只留读数）

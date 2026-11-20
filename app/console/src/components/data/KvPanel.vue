@@ -254,19 +254,13 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
     <template #detail>
       <div v-if="!selectedId" class="empty">左边选一个命名空间，这里就出它的 Key。</div>
       <div v-else class="card">
-        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-          <h3 style="margin:0">{{ selectedNs?.title }} · Key</h3>
-          <div class="row" style="gap:6px">
-            <button class="ghost sm" @click="showWrite = !showWrite">{{ showWrite ? "收起" : "写入键值" }}</button>
-            <button class="ghost sm" :disabled="keys.loading || !hasMore" @click="loadMore">
-              {{ keys.loading ? "加载中" : hasMore ? "加载下一页" : "到底了" }}
-            </button>
-          </div>
+        <div class="row" style="justify-content:flex-end;gap:6px;margin-bottom:8px">
+          <WriteGate v-model="optIn" variant="inline" />
+          <button class="ghost sm" @click="showWrite = !showWrite">{{ showWrite ? "收起" : "写入键值" }}</button>
+          <button class="ghost sm" :disabled="keys.loading || !hasMore" @click="loadMore">
+            {{ keys.loading ? "加载中" : hasMore ? "加载下一页" : "到底了" }}
+          </button>
         </div>
-        <WriteGate
-          v-model="optIn" variant="bar"
-          :note="optIn ? '确认后写请求会真的发出（网关模式还有 WRITE_ENABLED 一道）。' : '关着时写请求不会离开这台设备。'"
-        />
         <div v-if="showWrite" class="card wbox">
           <div class="row" style="gap:6px;align-items:center;margin-bottom:6px">
             <input v-model="wKey" class="field mono" placeholder="Key（≤512 字节）" style="flex:1;min-width:0" />

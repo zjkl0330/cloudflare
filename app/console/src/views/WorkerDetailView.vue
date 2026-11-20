@@ -509,10 +509,7 @@ function isLive(versionId: unknown): boolean {
         <WriteGate v-model="optIn" variant="inline" />
       </div>
       <ErrorNote :err="domains.err || zones.err" />
-      <div class="small muted" style="margin: 6px 0 8px">
-        上游 2026-10-22 实测：绑定是 <code>PUT /accounts/{a}/workers/domains</code>（客户端发 POST，两层转换），
-        解绑 DELETE 回空 200。开关关着时下面的按钮不会发请求。
-      </div>
+      <div class="small muted" style="margin: 4px 0 8px">绑定 / 解绑前需要打开上面的写开关。</div>
       <div v-if="doneMsg" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ doneMsg }}</div>
 
       <div class="list" v-if="myDomains.length">

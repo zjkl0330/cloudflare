@@ -161,9 +161,9 @@ function open(r: BoardRow, c?: string) {
 </script>
 
 <template>
-  <div class="card board">
+  <div class="card plain board">
     <div class="bh">
-      <h3>Workers + Pages 看板</h3>
+      <h3>计算资源看板</h3>
       <span class="small muted">
         {{ agg && acctN ? acctN + " 个账号 · 只读 · " : "" }}共 {{ rows.length }} 项 • 按最近改动并成一份
       </span>
