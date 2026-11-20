@@ -837,7 +837,7 @@ function refresh() {
   font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
 .card > .row > h3::before {
   content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
-  background: var(--grad-brand); box-shadow: var(--glow);
+  background: var(--accent); box-shadow: none;
 }
 
 /* 部署历史：行内徽章允许换行，但徽章自身不拆字；左栏吃掉剩余宽度，别让右栏把 ID 挤成两行 */

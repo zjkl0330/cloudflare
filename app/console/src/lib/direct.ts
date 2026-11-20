@@ -259,6 +259,9 @@ function routeREST(path: string, q: Record<string, string | number | undefined>,
         if (q.cursor) qs.set("cursor", String(q.cursor));
         return { path: `${A(account)}/storage/kv/namespaces/${enc(s[1])}/keys?${qs.toString()}`, spec: { unwrap: "list" } };
       }
+      if (s.length === 4 && s[2] === "values") {
+        return { path: `${A(account)}/storage/kv/namespaces/${enc(s[1])}/values/${enc(s[3])}`, spec: {} };
+      }
       return null;
     case "d1":
       if (s.length === 2) return { path: `${A(account)}/d1/database/${enc(s[1])}`, spec: {} };

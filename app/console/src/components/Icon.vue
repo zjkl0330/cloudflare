@@ -141,6 +141,12 @@ const ICONS: Record<string, El[]> = {
   ],
   // 折叠/下拉箭头
   chevron: [{ t: "path", a: { d: "M6.5 9.5 12 15l5.5-5.5" } }],
+  back: [{ t: "path", a: { d: "M15 4.5 7.5 12 15 19.5" } }],
+  // 搜索 / 功能索引
+  search: [
+    { t: "circle", a: { cx: "11", cy: "11", r: "6.5" } },
+    { t: "path", a: { d: "m16 16 4.5 4.5" } },
+  ],
   // 更多：三点
   more: [
     { t: "circle", a: { cx: "5.5", cy: "12", r: "1.5" } },

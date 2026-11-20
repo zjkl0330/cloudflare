@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { reloadTick, requestReload } from "../lib/bus";
+import { reloadTick, requestReload, setPageSub } from "../lib/bus";
 import { useRouter } from "vue-router";
 import ErrorNote from "../components/ErrorNote.vue";
 import RowCard from "../components/RowCard.vue";
@@ -17,6 +17,7 @@ import { labelOf, type CfAccount } from "../lib/accounts";
 import { agg, aggAccounts, aggSkipped, focusAccount, mapLimit } from "../lib/aggregate";
 
 const nav = useRouter();
+
 
 /** 当前单账号 id：本机记录（Workers 仓库）按账号分开存 */
 const accountId = computed(() => loadConfig().account);
@@ -137,6 +138,12 @@ function openWorker(w: any) {
 
 /* ---- Pages 列表 ---- */
 const pages = ref<any[]>([]);
+
+/** 顶栏副题：两个列表的数量；合并模式说明只读 */
+watch([workers, pages], () => {
+  if (agg.on) { setPageSub(`${aggAccounts().length} 个账号 · 只读合并`); return; }
+  setPageSub(`${workers.value.length} 个 Worker · ${pages.value.length} 个 Pages`);
+}, { immediate: true });
 const pagesErr = ref<GwError | null>(null);
 const pagesLoading = ref(false);
 
@@ -353,7 +360,6 @@ function toggleClean(w: string) {
           :key="(w.__acc || '') + workerName(w)"
           :title="workerName(w)"
           :meta="`${rel(w.modified_on)} 修改 · ${dt(w.created_on, false)} 创建`"
-          :max="10"
           :badges="[
             ...(w.__accName ? [{ text: w.__accName, title: '归属账号 ' + w.__acc }] : []),
             ...(w.tail_consumers && w.tail_consumers.length ? [{ text: '实时日志', title: '字段 tail_consumers：这个 Worker 挂了 Workers Tail 消费者（实时日志流）' }] : []),

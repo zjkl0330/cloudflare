@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 深色档：与 main.css 的页面底色（#060a15）同一值，状态栏不再比页面亮一截 -->
-    <color name="app_system_bar">#060a15</color>
+    <!-- 深色档：与 main.css 的页面底色（#0d1117）同一值，状态栏不再比页面亮一截 -->
+    <color name="app_system_bar">#0d1117</color>
 </resources>

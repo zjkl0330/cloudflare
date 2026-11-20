@@ -613,6 +613,9 @@ export const api = {
     // CF 要求 limit ≥ 10（实测 10028），客户端先夹紧再发
     gw<KvKeysResult>("/v1/kv/" + encodeURIComponent(nsId) + "/keys", { limit: Math.min(1000, Math.max(10, limit)), ...(cursor ? { cursor } : {}) }),
   /** 写键值：客户端发 {value}，两层转成上游裸文本 PUT（实测 GET 读回逐字节一致） */
+  /** 读单个 Key 的文本值；CF 回裸文本，网关/直连都包成 { result } */
+  kvValue: (nsId: string, key: string) =>
+    gw<{ result: string }>(`/v1/kv/${encodeURIComponent(nsId)}/values/${encodeURIComponent(key)}`).then((r) => String(r.result ?? "")),
   kvPutValue: (nsId: string, key: string, value: string) =>
     gwWrite<any>("PUT", `/v1/kv/${encodeURIComponent(nsId)}/values/${encodeURIComponent(key)}`, { value }),
   kvDeleteKey: (nsId: string, key: string) => gwWrite<any>("DELETE", `/v1/kv/${encodeURIComponent(nsId)}/values/${encodeURIComponent(key)}`),

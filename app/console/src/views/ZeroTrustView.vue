@@ -13,7 +13,7 @@
  * 必须是两句话（docs/09 §E16）。
  */
 import { computed, onMounted, ref, watch } from "vue";
-import { reloadTick } from "../lib/bus";
+import { reloadTick, setPageSub } from "../lib/bus";
 import ErrorNote from "../components/ErrorNote.vue";
 import RowCard from "../components/RowCard.vue";
 import { api, forceFreshWindow, GwError } from "../lib/api";
@@ -55,6 +55,21 @@ function refresh() {
 }
 
 const anyErr = computed(() => [org, apps, groups, policies].some((s) => s.value.err));
+/** 分段页：一次只看一类对象；条数摆在分段标签上，不用滚下去找 */
+const view = ref<"apps" | "groups" | "policies" | "org">("apps");
+const q = ref("");
+const ql = computed(() => q.value.trim().toLowerCase());
+const hit = (name: unknown, extra?: unknown): boolean => {
+  if (!ql.value) return true;
+  return `${name ?? ""} ${extra ?? ""}`.toLowerCase().includes(ql.value);
+};
+const appsShown = computed(() => (apps.value.data ?? []).filter((a) => hit(a.name, `${a.domain ?? ""} ${a.type ?? ""}`)));
+const groupsShown = computed(() => (groups.value.data ?? []).filter((g) => hit(g.name, g.id)));
+const policiesShown = computed(() => (policies.value.data ?? []).filter((p) => hit(p.name, `${p.decision ?? ""} ${p.precedence ?? ""}`)));
+watch([apps, groups, policies], () => {
+  const n = (apps.value.data?.length ?? 0) + (groups.value.data?.length ?? 0) + (policies.value.data?.length ?? 0);
+  setPageSub(`Access 只读 · ${n} 个对象`);
+}, { immediate: true });
 /** 只有"读到了且是空数组"才配说"一条都没配"；没读到的那一块由各自的 ErrorNote 说话 */
 const configuredNothing = computed(
   () => !anyErr.value && apps.value.data?.length === 0 && groups.value.data?.length === 0 && policies.value.data?.length === 0,
@@ -63,71 +78,111 @@ const configuredNothing = computed(
 
 <template>
   <div>
-    <div class="row" style="justify-content: space-between; margin-bottom: 10px">
-      <span class="muted small">Zero Trust · Cloudflare Access（只读）</span>
+    <div class="seg panes" role="tablist" aria-label="Zero Trust 分类">
+      <button class="seg-b" :class="{ on: view === 'apps' }" @click="view = 'apps'">
+        应用 <span>{{ apps.data ? apps.data.length : "—" }}</span>
+      </button>
+      <button class="seg-b" :class="{ on: view === 'groups' }" @click="view = 'groups'">
+        用户组 <span>{{ groups.data ? groups.data.length : "—" }}</span>
+      </button>
+      <button class="seg-b" :class="{ on: view === 'policies' }" @click="view = 'policies'">
+        策略 <span>{{ policies.data ? policies.data.length : "—" }}</span>
+      </button>
+      <button class="seg-b" :class="{ on: view === 'org' }" @click="view = 'org'">组织</button>
     </div>
 
-    <div class="card">
-      <h3 style="margin-top:0">组织</h3>
-      <ErrorNote :err="org.err" />
-      <div class="empty" v-if="org.loading && !org.data">取数中…</div>
-      <div class="kv" v-else-if="org.data">
-        <dt>登录域名</dt><dd><code class="authdom">{{ org.data.auth_domain || "—（接口没返回这个字段）" }}</code></dd>
-        <dt>组织名</dt><dd>{{ org.data.name || "—" }}</dd>
-        <dt>创建时间</dt><dd>{{ dt(org.data.created_at) }}</dd>
-        <dt>后台只读锁</dt><dd>{{ org.data.is_ui_read_only === true ? "开启" : org.data.is_ui_read_only === false ? "关闭" : "没取到这个字段，不下结论" }}</dd>
+    <template v-if="view !== 'org'">
+      <div class="list-head">
+        <span class="lh-t">
+          {{ view === "apps" ? "Access 应用" : view === "groups" ? "用户组" : "访问策略" }}
+          <b>{{ view === "apps" ? appsShown.length : view === "groups" ? groupsShown.length : policiesShown.length }}</b>
+        </span>
+        <button class="ghost sm" :disabled="apps.loading || groups.loading || policies.loading" @click="refresh">
+          {{ apps.loading || groups.loading || policies.loading ? "刷新中…" : "刷新" }}
+        </button>
       </div>
-      <div class="small muted" style="margin-top:6px">
-        走 <code>GET /accounts/{a}/access/organizations</code>，所需权限 <code>Zero Trust Read</code>。
-        这一条能通就说明账号确实有 Zero Trust 组织；界面上的空列表因此是"没配"，不是"没开"。
-      </div>
-    </div>
+      <input v-model="q" class="field zq" type="search" placeholder="搜索名称 / 域名 / 决策" spellcheck="false" autocomplete="off" />
 
-    <div class="card">
-      <h3 style="margin-top:0">Access 应用（{{ apps.data ? apps.data.length + " 个" : "—" }}）</h3>
-      <ErrorNote :err="apps.err" />
-      <div class="empty" v-if="apps.loading && !apps.data">取数中…</div>
-      <div class="rows" v-else-if="apps.data?.length">
-        <RowCard
-          v-for="a in apps.data" :key="a.id || a.name"
-          :title="a.name || a.domain || '（无名应用）'"
-          :meta="[a.domain, a.type].filter(Boolean).join(' · ')"
-        />
-      </div>
-      <div class="empty" v-else-if="!apps.err && apps.data && !apps.data.length">这个账号里一个 Access 应用都没配</div>
-    </div>
+      <!-- 应用 -->
+      <template v-if="view === 'apps'">
+        <ErrorNote :err="apps.err" />
+        <div class="empty" v-if="apps.loading && !apps.data">取数中…</div>
+        <div class="rows" v-else-if="appsShown.length">
+          <RowCard
+            v-for="a in appsShown" :key="a.id || a.name"
+            :title="a.name || a.domain || '（无名应用）'"
+            :meta="[a.domain, a.type].filter(Boolean).join(' · ')"
+            :badges="a.type ? [{ text: String(a.type) }] : []"
+            :openable="false"
+          />
+        </div>
+        <div class="empty" v-else-if="!apps.err && apps.data">
+          {{ ql ? "没有匹配的应用" : "这个账号里一个 Access 应用都没配" }}
+        </div>
+      </template>
 
-    <div class="card">
-      <h3 style="margin-top:0">用户组（{{ groups.data ? groups.data.length + " 个" : "—" }}）</h3>
-      <ErrorNote :err="groups.err" />
-      <div class="empty" v-if="groups.loading && !groups.data">取数中…</div>
-      <div class="rows" v-else-if="groups.data?.length">
-        <RowCard v-for="g in groups.data" :key="g.id" :title="g.name || '（无名组）'" />
-      </div>
-      <div class="empty" v-else-if="!groups.err && groups.data && !groups.data.length">没有用户组</div>
-    </div>
+      <!-- 用户组 -->
+      <template v-else-if="view === 'groups'">
+        <ErrorNote :err="groups.err" />
+        <div class="empty" v-if="groups.loading && !groups.data">取数中…</div>
+        <div class="rows" v-else-if="groupsShown.length">
+          <RowCard v-for="g in groupsShown" :key="g.id" :title="g.name || '（无名组）'" :meta="g.id ? 'ID ' + String(g.id).slice(0, 12) : ''" :openable="false" />
+        </div>
+        <div class="empty" v-else-if="!groups.err && groups.data">{{ ql ? "没有匹配的用户组" : "没有用户组" }}</div>
+      </template>
 
-    <div class="card">
-      <h3 style="margin-top:0">访问策略（{{ policies.data ? policies.data.length + " 条" : "—" }}）</h3>
-      <ErrorNote :err="policies.err" />
-      <div class="empty" v-if="policies.loading && !policies.data">取数中…</div>
-      <div class="rows" v-else-if="policies.data?.length">
-        <RowCard
-          v-for="p in policies.data" :key="p.id"
-          :title="p.name || '（无名策略）'"
-          :meta="[p.decision, p.precedence != null ? '优先级 ' + p.precedence : ''].filter(Boolean).join(' · ')"
-        />
-      </div>
-      <div class="empty" v-else-if="!policies.err && policies.data && !policies.data.length">没有访问策略</div>
-      <div class="small muted" v-if="configuredNothing" style="margin-top:8px">
+      <!-- 策略 -->
+      <template v-else>
+        <ErrorNote :err="policies.err" />
+        <div class="empty" v-if="policies.loading && !policies.data">取数中…</div>
+        <div class="rows" v-else-if="policiesShown.length">
+          <RowCard
+            v-for="p in policiesShown" :key="p.id"
+            :title="p.name || '（无名策略）'"
+            :meta="[p.decision, p.precedence != null ? '优先级 ' + p.precedence : ''].filter(Boolean).join(' · ')"
+            :badges="p.decision ? [{ text: p.decision }] : []"
+            :openable="false"
+          />
+        </div>
+        <div class="empty" v-else-if="!policies.err && policies.data">{{ ql ? "没有匹配的策略" : "没有访问策略" }}</div>
+      </template>
+
+      <p class="small muted foot" v-if="configuredNothing">
         三块都读到了、也都是空的：<strong>这个账号开了 Zero Trust 但还没配 Access</strong>。
         后台建第一个应用之后点「刷新」就能看到，不是界面坏了。
+      </p>
+    </template>
+
+    <!-- 组织 -->
+    <template v-else>
+      <div class="card">
+        <h3>Zero Trust 组织</h3>
+        <ErrorNote :err="org.err" />
+        <div class="empty" v-if="org.loading && !org.data">取数中…</div>
+        <div class="kv" v-else-if="org.data">
+          <dt>登录域名</dt><dd><code class="authdom">{{ org.data.auth_domain || "—（接口没返回这个字段）" }}</code></dd>
+          <dt>组织名</dt><dd>{{ org.data.name || "—" }}</dd>
+          <dt>创建时间</dt><dd>{{ dt(org.data.created_at) }}</dd>
+          <dt>后台只读锁</dt><dd>{{ org.data.is_ui_read_only === true ? "开启" : org.data.is_ui_read_only === false ? "关闭" : "没取到这个字段，不下结论" }}</dd>
+        </div>
+        <p class="small muted" style="margin-top:8px">
+          走 <code>GET /accounts/{a}/access/organizations</code>，所需权限 <code>Zero Trust Read</code>。
+          这一条能通就说明账号确实有 Zero Trust 组织；空列表因此是「没配」，不是「没开」。
+        </p>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.panes { display: flex; width: 100%; margin-bottom: 10px; }
+.panes .seg-b { flex: 1; padding: 6px 2px; text-align: center; }
+.panes .seg-b span { font-family: var(--font-num); color: var(--muted); font-size: 10px; margin-left: 2px; }
+.list-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 8px; }
+.lh-t { font-size: 12.5px; font-weight: 650; }
+.lh-t b { font-family: var(--font-num); margin-left: 2px; }
+.zq { height: 34px; margin-bottom: 8px; }
+.foot { margin-top: 10px; padding: 9px 11px; border-left: 3px solid var(--warn); background: rgb(var(--warn-rgb) / .08); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
 /* 组织信息走 ghx 的 kv 面板：发丝线分行，键窄、值长 */
 .kv { grid-template-columns: 86px 1fr; gap: 0 12px; font-size: var(--t-xs); }
 .kv dt, .kv dd { padding: 6px 0; border-top: 1px solid var(--line-soft); }

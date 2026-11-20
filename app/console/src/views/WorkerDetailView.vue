@@ -791,7 +791,7 @@ function isLive(versionId: unknown): boolean {
   font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
 .card > .row > h3::before {
   content: ""; width: 3px; height: 12px; border-radius: 3px; flex: none;
-  background: var(--grad-brand); box-shadow: var(--glow);
+  background: var(--accent); box-shadow: none;
 }
 
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }

@@ -14,7 +14,8 @@ import RowCard from "../RowCard.vue";
 import FoldNote from "../FoldNote.vue";
 import { useFold } from "../../lib/lists";
 import StoreSplit from "./StoreSplit.vue";
-import { api, forceFreshWindow, GwError, type R2Bucket } from "../../lib/api";
+import { Browser } from "@capacitor/browser";
+import { api, forceFreshWindow, GwError, isNativeApp, type R2Bucket } from "../../lib/api";
 import { dt } from "../../lib/fmt";
 
 const buckets = ref<{ data: R2Bucket[] | null; err: GwError | null; loading: boolean }>({
@@ -45,6 +46,14 @@ const listState = computed(() =>
   : (buckets.value.data?.length ?? 0) ? "st-data" : "st-empty" as const);
 
 function pick(b: R2Bucket) { selected.value = b.name; pane.value = "detail"; }
+const current = computed(() => (buckets.value.data ?? []).find((b) => b.name === selected.value) ?? null);
+const region = (b: R2Bucket | null): string => b?.jurisdiction || b?.location || "默认区域（自动）";
+async function openDash() {
+  if (!selected.value) return;
+  const url = `https://dash.cloudflare.com/?to=/:account/r2/default/buckets/${encodeURIComponent(selected.value)}`;
+  if (!isNativeApp()) { window.open(url, "_blank", "noopener"); return; }
+  try { await Browser.open({ url }); } catch { window.open(url, "_blank", "noopener"); }
+}
 
 const shownBuckets = computed(() => {
   const arr = buckets.value.data ?? [];
@@ -102,18 +111,22 @@ const bucketFold = useFold(() => shownBuckets.value);
     </button>
 
     <template #detail>
-      <div class="card">
-        <h3>桶内对象</h3>
-        <div class="small muted">这一栏现在是<strong>没接</strong>，不是"这个桶没有对象"。</div>
-        <FoldNote label="这条路由为什么还没接">
-          网关只注册了列桶的 <code>GET /accounts/{a}/r2/bucket</code>，还没有列对象的
-          <code>GET /r2/bucket/{name}/objects</code>（R2 的对象列表是 XML 响应，要单独写解析，
-          跟这个账号还没开通 R2 一起排在一起，等真开通了再按实测形状接）。
-        </FoldNote>
-        <div class="empty" style="margin-top:8px">
-          {{ selected ? `选中了 ${selected}，但对象这一层还没法取。` : '左边选一个桶（前提是这个账号能读到桶）。' }}
+      <div class="card" v-if="current">
+        <h3>{{ current.name }}</h3>
+        <div class="kv">
+          <dt>创建时间</dt><dd>{{ dt(current.creation_date, false) }}</dd>
+          <dt>区域</dt><dd>{{ region(current) }}</dd>
+          <dt>桶名</dt><dd class="mono">{{ current.name }}</dd>
         </div>
+        <div class="row" style="gap:8px;margin-top:10px">
+          <button class="primary sm" @click="openDash">在 Cloudflare 控制台打开</button>
+        </div>
+        <p class="small muted" style="margin-top:9px">
+          桶内对象的增删查需要 R2 的 S3 Access Key（CF API Token 走不了对象列表），
+          所以这里只展示桶本身；对象管理请从上方入口进控制台。
+        </p>
       </div>
+      <div class="empty" v-else>左边选一个桶（前提是这个账号能读到桶）。</div>
     </template>
   </StoreSplit>
 </template>

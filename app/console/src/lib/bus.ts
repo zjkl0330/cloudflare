@@ -23,3 +23,13 @@ export function requestReload(): void {
   if (spinTimer) clearTimeout(spinTimer);
   spinTimer = setTimeout(() => { reloading.value = false; }, 600);
 }
+
+/**
+ * 顶栏副题（2026-11-20）：每屏把自己的口径写在这一行 —— 「3 个站点」比一句固定的
+ * 英文大写副题有用。屏在数据回来时调 setPageSub，路由切换时 App 清空，避免上一屏的字残留。
+ */
+export const pageSub = ref("");
+
+export function setPageSub(v: string): void {
+  pageSub.value = v;
+}

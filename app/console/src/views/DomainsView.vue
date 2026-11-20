@@ -2,8 +2,9 @@
 import { Browser } from "@capacitor/browser";
 import { useRouter } from "vue-router";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { reloadTick, requestReload } from "../lib/bus";
+import { reloadTick, requestReload, setPageSub } from "../lib/bus";
 import ErrorNote from "../components/ErrorNote.vue";
+import Icon from "../components/Icon.vue";
 import ConfirmSheet from "../components/ConfirmSheet.vue";
 import DnsRecordForm from "../components/dns/DnsRecordForm.vue";
 import DnsPurgeForm from "../components/dns/DnsPurgeForm.vue";
@@ -89,38 +90,36 @@ const aggZoneSel = computed(() => {
   }
   return null;
 });
-/** 切换器上的那行字 / 状态点：单账号看当前站点，合并模式看筛选结果 */
-const selectorLabel = computed(() => {
-  if (!agg.on) return currentZone.value?.name || (zones.value.loading ? "加载中…" : "选择站点");
-  return aggZoneSel.value ? aggZoneSel.value.name : `全部站点（${aggZoneCount.value}）`;
-});
-const selectorStatus = computed(() => (agg.on ? aggZoneSel.value?.status || "unknown" : currentZone.value?.status || "unknown"));
-function pickAggZone(acc: string, id: string) {
-  aggZoneKey.value = acc + "|" + id;
-  zopen.value = false;
-}
 
 /* ---------- 站点检索：站点一多，下拉里一条条翻比记名字还慢 ----------
  * 只筛切换器里的清单，不动已选站点、不发请求；匹配站点名 / zone id / 账号名。 */
 const zoneQuery = ref("");
+/** 域名页现在是两级：先站点列表，点进去才是这个站点的 DNS / 缓存 / WAF / 工具 / 状态 */
+const zoneView = ref<"list" | "detail">("list");
+type Pane = "dns" | "cache" | "waf" | "tools" | "status";
+const pane = ref<Pane>("dns");
+function openZone(z: any) {
+  const next = String(z.id);
+  if (zoneId.value === next) { zoneView.value = "detail"; pane.value = "dns"; zopen.value = false; return; }
+  zoneId.value = next;
+  zoneView.value = "detail";
+  pane.value = "dns";
+  zopen.value = false;
+  zoneQuery.value = "";
+}
+function backToList() {
+  zoneView.value = "list";
+  zopen.value = false;
+}
+/** 合并视图只读且没有「当前站点」，退出时回到站点列表，别停在上一轮的详情上 */
+watch(() => agg.on, (on) => { if (!on) zoneView.value = "list"; });
 const zoneQ = computed(() => zoneQuery.value.trim().toLowerCase());
-const zoneTotal = computed(() => (agg.on ? aggZoneCount.value : (zones.value.data?.length ?? 0)));
 const zonesFiltered = computed(() => {
   const q = zoneQ.value;
   const arr = zones.value.data ?? [];
   if (!q) return arr;
   return arr.filter((z: any) => `${z.name ?? ""} ${z.id ?? ""}`.toLowerCase().includes(q));
 });
-const aggZoneGroupsFiltered = computed(() => {
-  const q = zoneQ.value;
-  if (!q) return aggZoneGroups.value;
-  return aggZoneGroups.value
-    .map((g) => ({ ...g, zones: g.zones.filter((z) => `${z.name} ${z.id} ${g.accName}`.toLowerCase().includes(q)) }))
-    .filter((g) => g.zones.length);
-});
-const zoneMatchCount = computed(() =>
-  agg.on ? aggZoneGroupsFiltered.value.reduce((n, g) => n + g.zones.length, 0) : zonesFiltered.value.length,
-);
 
 /** 面板开合：写侧三块（新增/编辑、清缓存、向导）默认收起，一屏不塞满 */
 const editorOpen = ref(false);
@@ -256,8 +255,6 @@ async function loadTop() {
       return groups.filter((g) => g.project);
     }),
   ]);
-  const arr = zones.value.data ?? [];
-  if (!zoneId.value && arr.length) zoneId.value = String(arr[0].id);
 }
 
 async function loadZone() {
@@ -270,7 +267,7 @@ async function loadZone() {
   ]);
 }
 
-onMounted(async () => { await loadTop(); await loadZone(); });
+onMounted(async () => { await loadTop(); if (zoneView.value === "detail") await loadZone(); });
 
 /* ---------- 站点下拉：展开/收起 + 点外面关闭 ---------- */
 const zopen = ref(false);
@@ -289,6 +286,23 @@ watch(zoneId, () => { if (agg.on) return; editorOpen.value = false; editorRecord
 
 const zoneName = computed(() => (zones.value.data ?? []).find((z: any) => String(z.id) === zoneId.value)?.name ?? "");
 const currentZone = computed(() => (zones.value.data ?? []).find((z: any) => String(z.id) === zoneId.value) ?? null);
+/** 站点列表里每条状态的展示：状态、套餐、NS 条数都是列表接口原样给的字段，不猜 */
+const nsOf = (z: any): string[] => (Array.isArray(z?.vanity_name_servers) && z.vanity_name_servers.length
+  ? z.vanity_name_servers : z?.name_servers) ?? [];
+const planOf = (z: any): string => z?.plan?.name || z?.plan?.legacy_id || "套餐未知";
+const wafCount = computed(() => waf.value.data?.ruleCount ?? 0);
+
+/** 顶栏副题：列表页说站点数，详情页说当前站点的套餐与 NS */
+watch([() => zones.value.data, zoneView, currentZoneName], () => {
+  if (agg.on) { setPageSub(`${aggAccounts().length} 个账号 · 只读合并`); return; }
+  const arr = zones.value.data ?? [];
+  if (zoneView.value === "detail" && currentZone.value) {
+    setPageSub(`${planOf(currentZone.value)} · NS ${nsOf(currentZone.value).length} 条`);
+  } else {
+    setPageSub(arr.length ? `${arr.length} 个站点 · ${arr.filter((z: any) => z.status === "active").length} 个已生效` : "站点与 DNS");
+  }
+}, { immediate: true });
+
 /** 站点状态折叠条上的摘要：只放状态/套餐/NS 条数，不再重复站点名（切换器已经显示了） */
 const zoneSummary = computed(() => {
   const z: any = currentZone.value;
@@ -615,71 +629,6 @@ async function confirmSheet() {
 
 <template>
   <div>
-    <div class="row" style="justify-content: space-between; margin-bottom: 10px; gap: 10px">
-      <!-- 站点切换器：折叠式下拉（跟旧版 select 一样收着），展开后带状态点与状态文字。
-           合并模式下它不消失，改成跨账号站点清单（全部站点 + 按账号分组），选中即筛选。 -->
-      <div class="zdd" ref="zddEl">
-        <button class="zbtn" :aria-expanded="zopen" aria-haspopup="listbox" @click.stop="zopen = !zopen">
-          <i class="zdot" :data-s="selectorStatus" />
-          <span class="zname">{{ selectorLabel }}</span>
-          <i class="chev" :class="{ up: zopen }">▾</i>
-        </button>
-        <div class="zpanel" v-if="zopen" role="listbox" aria-label="选择站点">
-          <!-- 站点多了之后在下拉里滚很费劲：超过 5 个就给个检索框，按站点名 / ID / 账号名筛 -->
-          <div class="zsearch" v-if="zoneTotal > 5">
-            <input
-              v-model="zoneQuery"
-              class="field"
-              placeholder="搜索站点 / 账号"
-              spellcheck="false"
-              autocomplete="off"
-              aria-label="搜索站点"
-            />
-            <span v-if="zoneQuery" class="small muted">{{ zoneMatchCount }} 个匹配</span>
-          </div>
-          <template v-if="agg.on">
-            <button class="zopt" :class="{ on: !aggZoneKey }" role="option" :aria-selected="!aggZoneKey" @click="aggZoneKey = ''; zopen = false">
-              <i class="zdot" />
-              <span class="zopt-name">全部站点</span>
-              <span class="zopt-st">{{ aggZoneCount }} 个</span>
-            </button>
-            <div v-for="g in aggZoneGroupsFiltered" :key="'zg-' + g.acc" class="zgrp">
-              <div class="zgrp-h">{{ g.accName }}</div>
-              <button
-                v-for="z in g.zones" :key="g.acc + '|' + z.id"
-                class="zopt" :class="{ on: aggZoneKey === g.acc + '|' + z.id }"
-                role="option" :aria-selected="aggZoneKey === g.acc + '|' + z.id"
-                @click="pickAggZone(g.acc, z.id)"
-              >
-                <i class="zdot" :data-s="z.status" />
-                <span class="zopt-name">{{ z.name }}</span>
-                <span class="zopt-st">{{ z.status }}</span>
-              </button>
-            </div>
-            <div v-if="aggLoading && !aggZoneCount" class="small muted" style="padding: 8px 10px">正在读取站点…</div>
-            <div v-else-if="!aggLoading && !aggZoneGroupsFiltered.length" class="small muted" style="padding: 8px 10px">
-              没有匹配的站点
-            </div>
-          </template>
-          <template v-else>
-            <button
-              v-for="z in zonesFiltered" :key="z.id"
-              class="zopt" :class="{ on: String(z.id) === zoneId }"
-              role="option" :aria-selected="String(z.id) === zoneId"
-              @click="zoneId = String(z.id); zopen = false"
-            >
-              <i class="zdot" :data-s="z.status || 'unknown'" />
-              <span class="zopt-name">{{ z.name }}</span>
-              <span class="zopt-st">{{ z.status || "" }}</span>
-            </button>
-            <div v-if="!zonesFiltered.length" class="small muted" style="padding: 8px 10px">
-              {{ zones.loading ? "正在读取站点…" : "没有匹配的站点" }}
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
-
     <!-- 合并视图（只读）：站点切换器仍在（跨账号清单），这里补账号数 / 进度 / 逐账号错误 -->
     <div v-if="agg.on" class="aggbar">
       <div class="aggtop">
@@ -691,200 +640,210 @@ async function confirmSheet() {
       </div>
       <div class="small muted" v-else>点条目会先切到它所属账号再进详情；写操作请在单账号下进行。</div>
       <div class="small muted" v-if="aggSkipped().length">网页模式跳过 {{ aggSkipped().length }} 个 OAuth 账号（拿不到令牌）。</div>
-      <!-- 按账号独立失败：一个账号的令牌过期只在这里说明，不拖垮其它账号 -->
       <div v-for="(x, i) in aggErrList" :key="i" class="small agg-err">
         {{ x.accName }} · {{ x.label }}：{{ x.err.hint }}
       </div>
     </div>
 
-    <ErrorNote :err="domains.err || zones.err" />
-
-    <!-- 站点状态折叠成一行摘要：站点名已经在上面的切换器里，这里不再重复；展开才铺 nameserver -->
-    <details class="grp" v-if="currentZone && !agg.on">
-      <summary>站点状态与 nameserver<span class="gs">{{ zoneSummary }}</span></summary>
-      <div class="card">
-        <ZoneStatusCard :zone="currentZone" />
+    <!-- ========== 一级：站点列表 ========== -->
+    <template v-if="!agg.on && zoneView === 'list'">
+      <div class="list-head">
+        <span class="lh-t">站点 <b>{{ zonesFiltered.length }}</b><span class="lh-s" v-if="zones.data">共 {{ zones.data.length }} 个</span></span>
+        <button class="ghost sm" :disabled="zones.loading" @click="refresh">{{ zones.loading ? "刷新中…" : "刷新" }}</button>
       </div>
-    </details>
+      <input
+        v-model="zoneQuery" class="field zsearch-full" type="search"
+        placeholder="搜索站点名 / Zone ID" spellcheck="false" autocomplete="off"
+      />
+      <ErrorNote :err="zones.err" />
+      <div class="empty" v-if="zones.loading && !zones.data">正在读取站点…</div>
+      <div class="zlist" v-else-if="zonesFiltered.length">
+        <button v-for="z in zonesFiltered" :key="String(z.id)" class="zrow" @click="openZone(z)">
+          <i class="zdot" :data-s="z.status || 'unknown'" />
+          <span class="zrow-main">
+            <span class="zrow-name">{{ z.name }}</span>
+            <span class="zrow-meta">{{ planOf(z) }} · NS {{ nsOf(z).length }} 条 · {{ z.type === "partial" ? "CNAME 接入" : "完整接入" }}</span>
+          </span>
+          <span class="badge" :class="{ live: z.status === 'active', roll: z.status === 'pending' }">{{ z.status || "未知" }}</span>
+          <Icon class="zchev" name="chevron" :size="12" />
+        </button>
+      </div>
+      <div class="empty" v-else-if="zones.data && !zones.err">没有匹配的站点</div>
+      <div class="hintline" v-if="zones.data?.length">
+        点一个站点进入：DNS、缓存清理、WAF、配置向导、测速都在里面。
+      </div>
+    </template>
 
-    <!-- 一个域名一行：DNS 记录、Worker / Pages 绑定、Workers 路由都并进同一行。
-         以前用「记录 / 资产 / 路由」三个 tab，同一个域名要在两处各看一遍；现在一屏看全。 -->
-    <div class="card" v-if="zoneName || agg.on">
-      <div class="hd">
-        <h3 style="margin: 0">{{ agg.on ? "域名与 DNS（合并 · 只读）" : "域名与 DNS" }}</h3>
-        <div class="row" style="gap: 10px; align-items: center; flex-wrap: wrap" v-if="!agg.on">
-          <WriteGate v-model="writesOn" variant="inline" />
-          <button class="primary sm" :disabled="!zoneId" @click="openCreate">新增 DNS 记录</button>
-          <button class="primary sm" :disabled="!zoneId || !writesOn" @click="openRouteCreate">新增路由</button>
+    <!-- ========== 二级：站点详情（或合并视图） ========== -->
+    <template v-else>
+      <div class="dtop" v-if="!agg.on">
+        <button class="zback" @click="backToList"><Icon name="back" :size="13" />站点</button>
+        <div class="dtt">
+          <div class="dname">{{ currentZoneName || "站点" }}</div>
+          <div class="dsub">{{ zoneSummary }}</div>
         </div>
-        <span v-else class="small muted">合并模式不摆写入口</span>
-      </div>
-
-      <div class="small muted" style="margin-bottom: 6px" v-if="mergedRows.length || agg.on">
-        {{ statsLine }}
-      </div>
-
-      <ErrorNote :err="records.err || domains.err || routes.err" v-if="!agg.on" />
-      <div v-for="g in pageDomainErrs" :key="'pd-' + g.project" class="small agg-err">
-        {{ g.project }} · Pages 自定义域名读取失败：{{ g.err.hint }}
-      </div>
-
-      <!-- 搜索：域名多于一条、或单个域名下记录很多时出现；输入后行内记录也一起收窄 -->
-      <div class="row" style="margin: 8px 0 10px; gap: 8px" v-if="showHostSearch">
-        <input v-model="hostSearch" class="field" style="max-width: 320px" placeholder="搜索域名 / 记录名 / 记录值" spellcheck="false" autocomplete="off" />
-        <span v-if="hostSearch" class="small muted">{{ filteredRows.length }} 条匹配</span>
-      </div>
-
-      <div v-if="editorOpen" class="editor">
-        <h4>{{ editorRecord ? '编辑记录' : '新增记录' }}</h4>
-        <DnsRecordForm
-          :key="String(editorRecord?.id || editorPreset?.name || 'new')"
-          :zone-id="zoneId"
-          :zone-name="currentZoneName"
-          :record="editorRecord"
-          :preset="editorPreset"
-          @preview="onFormPreview"
-          @cancel="editorOpen = false"
-        />
-      </div>
-
-      <div v-if="routeOpen" class="editor">
-        <h4>{{ routeEditing ? "修改路由" : "新增路由" }}</h4>
-        <div class="row gen">
-          <input v-model="routePattern" class="field" placeholder="example.com/*" spellcheck="false" autocomplete="off" />
-          <input v-model="routeScript" class="field" placeholder="Worker 名（留空 = 仅记录，不跑 Worker）" spellcheck="false" autocomplete="off" />
-        </div>
-        <p class="small muted">
-          pattern 必须属于 {{ zoneName }}，并以 <code>*</code> 结尾；上游 POST/PUT/DELETE 三条同一路径。
-          这条写需要令牌带 Workers Routes Write，缺权限时 CF 回 403，会原样显示。
-        </p>
-        <p class="small errtext" v-if="routeErr">{{ routeErr }}</p>
-        <div class="row" style="gap: 8px">
-          <button class="ghost sm" :disabled="!writesOn" @click="askSaveRoute">预览并确认</button>
-          <button class="ghost sm" @click="routeOpen = false">取消</button>
-        </div>
-      </div>
-
-      <div class="hlist" v-if="filteredRows.length">
-        <div v-for="row in filteredRows" :key="row.key" class="hrow">
-          <div class="hhead">
-            <div class="hname">{{ row.host }}</div>
-            <!-- 合并模式：同一个主机名可能来自不同账号，必须标清是哪一份 -->
-            <span v-if="agg.on && row.accName" class="badge acctag" :title="row.acc">{{ row.accName }}</span>
-            <span v-if="row.records.some((r) => r.proxied)" class="badge prox">已代理</span>
-            <span v-if="row.workers.length" class="badge blue">Worker</span>
-            <span v-if="row.pages.length" class="badge blue">Pages</span>
-            <span v-if="row.routes.length" class="badge">路由</span>
+        <div class="zdd" ref="zddEl">
+          <button class="zbtn" :aria-expanded="zopen" aria-haspopup="listbox" @click.stop="zopen = !zopen">
+            切换<i class="chev" :class="{ up: zopen }">▾</i>
+          </button>
+          <div class="zpanel" v-if="zopen" role="listbox" aria-label="切换站点">
+            <button
+              v-for="z in zonesFiltered" :key="z.id"
+              class="zopt" :class="{ on: String(z.id) === zoneId }"
+              role="option" :aria-selected="String(z.id) === zoneId"
+              @click="openZone(z)"
+            >
+              <i class="zdot" :data-s="z.status || 'unknown'" />
+              <span class="zopt-name">{{ z.name }}</span>
+              <span class="zopt-st">{{ z.status || "" }}</span>
+            </button>
+            <div v-if="!zonesFiltered.length" class="small muted" style="padding: 8px 9px">没有匹配的站点</div>
           </div>
+        </div>
+      </div>
 
-          <!-- 记录行分两段：上行「类型 + 值」，下行「TTL / 代理 + 动作」。
-               长值（DKIM 公钥这类几百字符）默认折成两行，点「展开」才铺全 —— 卡片高度因此一致。 -->
-          <div v-for="r in recsOf(row)" :key="'dns-' + r.id" class="hline two">
-            <div class="hl-top">
-              <span class="badge">{{ r.type }}</span>
-              <span
-                class="hcontent mono"
-                :class="{ clamp: isLongValue(r.content) && !isValOpen(row, r) }"
-                :title="String(r.content)"
-              >{{ r.content }}</span>
+      <div class="seg panes" v-if="!agg.on" role="tablist" aria-label="站点功能">
+        <button class="seg-b" :class="{ on: pane === 'dns' }" @click="pane = 'dns'">DNS</button>
+        <button class="seg-b" :class="{ on: pane === 'cache' }" @click="pane = 'cache'">缓存</button>
+        <button class="seg-b" :class="{ on: pane === 'waf' }" @click="pane = 'waf'">WAF</button>
+        <button class="seg-b" :class="{ on: pane === 'tools' }" @click="pane = 'tools'">工具</button>
+        <button class="seg-b" :class="{ on: pane === 'status' }" @click="pane = 'status'">状态</button>
+      </div>
+
+      <!-- DNS / 绑定 -->
+      <div class="card" v-if="agg.on || pane === 'dns'">
+        <div class="hd">
+          <h3 style="margin: 0">{{ agg.on ? "域名与 DNS（合并 · 只读）" : "域名与 DNS" }}</h3>
+          <div class="row" style="gap: 8px; align-items: center; flex-wrap: wrap" v-if="!agg.on">
+            <WriteGate v-model="writesOn" variant="inline" />
+            <button class="primary sm" :disabled="!zoneId" @click="openCreate">新增 DNS 记录</button>
+            <button class="ghost sm" :disabled="!zoneId || !writesOn" @click="openRouteCreate">新增路由</button>
+          </div>
+          <span v-else class="small muted">合并模式不摆写入口</span>
+        </div>
+
+        <div class="small muted" style="margin-bottom: 8px" v-if="mergedRows.length || agg.on">
+          {{ statsLine }}
+        </div>
+
+        <ErrorNote :err="records.err || domains.err || routes.err" v-if="!agg.on" />
+        <div v-for="g in pageDomainErrs" :key="'pd-' + g.project" class="small agg-err">
+          {{ g.project }} · Pages 自定义域名读取失败：{{ g.err.hint }}
+        </div>
+
+        <div class="row zsearch-row" v-if="showHostSearch">
+          <input v-model="hostSearch" class="field" placeholder="搜索域名 / 记录名 / 记录值" spellcheck="false" autocomplete="off" />
+          <span v-if="hostSearch" class="small muted">{{ filteredRows.length }} 条匹配</span>
+        </div>
+
+        <div v-if="editorOpen" class="editor">
+          <h4>{{ editorRecord ? '编辑记录' : '新增记录' }}</h4>
+          <DnsRecordForm
+            :key="String(editorRecord?.id || editorPreset?.name || 'new')"
+            :zone-id="zoneId"
+            :zone-name="currentZoneName"
+            :record="editorRecord"
+            :preset="editorPreset"
+            @preview="onFormPreview"
+            @cancel="editorOpen = false"
+          />
+        </div>
+
+        <div v-if="routeOpen" class="editor">
+          <h4>{{ routeEditing ? "修改路由" : "新增路由" }}</h4>
+          <div class="row gen">
+            <input v-model="routePattern" class="field" placeholder="example.com/*" spellcheck="false" autocomplete="off" />
+            <input v-model="routeScript" class="field" placeholder="Worker 名（留空 = 仅记录，不跑 Worker）" spellcheck="false" autocomplete="off" />
+          </div>
+          <p class="small muted">
+            pattern 必须属于 {{ zoneName }}，并以 <code>*</code> 结尾；上游 POST/PUT/DELETE 三条同一路径。
+            这条写需要令牌带 Workers Routes Write，缺权限时 CF 回 403，会原样显示。
+          </p>
+          <p class="small errtext" v-if="routeErr">{{ routeErr }}</p>
+          <div class="row" style="gap: 8px">
+            <button class="ghost sm" :disabled="!writesOn" @click="askSaveRoute">预览并确认</button>
+            <button class="ghost sm" @click="routeOpen = false">取消</button>
+          </div>
+        </div>
+
+        <div class="hlist" v-if="filteredRows.length">
+          <div v-for="row in filteredRows" :key="row.key" class="hrow">
+            <div class="hhead">
+              <div class="hname">{{ row.host }}</div>
+              <span v-if="agg.on && row.accName" class="badge acctag" :title="row.acc">{{ row.accName }}</span>
+              <span v-if="row.records.some((r) => r.proxied)" class="badge prox">已代理</span>
+              <span v-if="row.workers.length" class="badge blue">Worker</span>
+              <span v-if="row.pages.length" class="badge blue">Pages</span>
+              <span v-if="row.routes.length" class="badge">路由</span>
             </div>
-            <div class="hl-bot">
-              <span class="small muted">{{ recTtl(r) }} · {{ r.proxied ? "已代理" : "仅 DNS" }}</span>
-              <button
-                v-if="isLongValue(r.content)" class="linkbtn foldbtn" type="button"
-                @click="toggleVal(row, r)"
-              >{{ isValOpen(row, r) ? "收起" : "展开" }}</button>
+
+            <div v-for="r in recsOf(row)" :key="'dns-' + r.id" class="hline two">
+              <div class="hl-top">
+                <span class="badge">{{ r.type }}</span>
+                <span
+                  class="hcontent mono"
+                  :class="{ clamp: isLongValue(r.content) && !isValOpen(row, r) }"
+                  :title="String(r.content)"
+                >{{ r.content }}</span>
+              </div>
+              <div class="hl-bot">
+                <span class="small muted">{{ recTtl(r) }} · {{ r.proxied ? "已代理" : "仅 DNS" }}</span>
+                <button
+                  v-if="isLongValue(r.content)" class="linkbtn foldbtn" type="button"
+                  @click="toggleVal(row, r)"
+                >{{ isValOpen(row, r) ? "收起" : "展开" }}</button>
+                <span class="ha" v-if="!agg.on">
+                  <button class="ghost sm" @click="openEdit(r)">编辑</button>
+                  <button class="ghost sm danger" @click="onDelete(r)">删除</button>
+                </span>
+              </div>
+            </div>
+
+            <div v-for="w in row.workers" :key="'w-' + (w.id || w.hostname)" class="hline">
+              <span class="harrow">→ Worker</span>
+              <button class="linkbtn" type="button" @click="goWorker(w.service, row.acc)">{{ w.service }}</button>
+              <span class="small muted">{{ w.environment || "production" }}<template v-if="w.cert_id"> · 有证书</template></span>
+            </div>
+
+            <div v-for="(d, i) in row.pages" :key="'p-' + row.host + i" class="hline">
+              <span class="harrow">→ Pages</span>
+              <button class="linkbtn" type="button" @click="goProject(d.project, row.acc)">{{ d.project }}</button>
+              <span v-if="d.status" class="badge" :class="{ live: d.status === 'active' }">{{ d.status === "active" ? "已生效" : d.status }}</span>
+            </div>
+
+            <div v-for="rt in row.routes" :key="'rt-' + rt.id" class="hline">
+              <span class="harrow">→ 路由</span>
+              <span class="mono">{{ rt.pattern }}</span>
+              <span class="small muted">{{ rt.script || "仅记录" }}</span>
               <span class="ha" v-if="!agg.on">
-                <button class="ghost sm" @click="openEdit(r)">编辑</button>
-                <button class="ghost sm danger" @click="onDelete(r)">删除</button>
+                <button class="ghost sm" :disabled="!writesOn" @click="openRouteEdit(rt)">编辑</button>
+                <button class="ghost sm danger" :disabled="!writesOn" @click="askDeleteRoute(rt)">删除</button>
               </span>
             </div>
+
+            <div v-if="!row.records.length" class="hline small muted">没有 DNS 记录（仅靠路由 / 外部解析生效）</div>
           </div>
-
-          <div v-for="w in row.workers" :key="'w-' + (w.id || w.hostname)" class="hline">
-            <span class="harrow">→ Worker</span>
-            <button class="linkbtn" type="button" @click="goWorker(w.service, row.acc)">{{ w.service }}</button>
-            <span class="small muted">{{ w.environment || "production" }}<template v-if="w.cert_id"> · 有证书</template></span>
-          </div>
-
-          <div v-for="(d, i) in row.pages" :key="'p-' + row.host + i" class="hline">
-            <span class="harrow">→ Pages</span>
-            <button class="linkbtn" type="button" @click="goProject(d.project, row.acc)">{{ d.project }}</button>
-            <span v-if="d.status" class="badge" :class="{ live: d.status === 'active' }">{{ d.status === "active" ? "已生效" : d.status }}</span>
-          </div>
-
-          <div v-for="rt in row.routes" :key="'rt-' + rt.id" class="hline">
-            <span class="harrow">→ 路由</span>
-            <span class="mono">{{ rt.pattern }}</span>
-            <span class="small muted">{{ rt.script || "仅记录" }}</span>
-            <span class="ha" v-if="!agg.on">
-              <button class="ghost sm" :disabled="!writesOn" @click="openRouteEdit(rt)">编辑</button>
-              <button class="ghost sm danger" :disabled="!writesOn" @click="askDeleteRoute(rt)">删除</button>
-            </span>
-          </div>
-
-          <div v-if="!row.records.length" class="hline small muted">没有 DNS 记录（仅靠路由 / 外部解析生效）</div>
         </div>
-      </div>
-      <div v-else-if="!listLoading" class="empty">
-        {{ hostSearch ? "没有匹配的域名" : agg.on ? "这些账号里还没有 DNS 记录或绑定" : "这个站点还没有 DNS 记录或绑定" }}
-      </div>
-      <div v-else class="empty">加载中…</div>
-      <div class="whyline" v-if="doneMsg">{{ doneMsg }}</div>
-
-      <div class="small muted" style="margin-top: 8px" v-if="sub.data?.subdomain && !agg.on">
-        workers.dev 子域：<code>*.{{ sub.data.subdomain }}.workers.dev</code>
-      </div>
-      <p class="small muted" style="margin-top: 8px" v-if="!writesOn && !agg.on">标题行右侧的本机写开关没打开，路由的增删改按钮是灰的。</p>
-    </div>
-
-    <!-- 运维工具（折叠）：清缓存 + 配置向导 + 测速。都是低频操作，不该占首屏。
-         前两块绑"当前站点"，合并视图没有当前站点，整块收起（测速也一并不显示）。 -->
-    <details class="grp" v-if="!agg.on">
-      <summary>运维工具<span class="gs">清缓存 · 配置向导 · 测速</span></summary>
-
-      <div class="card" v-if="zoneName">
-        <div class="hd">
-          <h3>按 URL 清理缓存</h3>
-          <button class="ghost sm" @click="purgeOpen = !purgeOpen">{{ purgeOpen ? "收起" : "展开" }}</button>
+        <div v-else-if="!listLoading" class="empty">
+          {{ hostSearch ? "没有匹配的域名" : agg.on ? "这些账号里还没有 DNS 记录或绑定" : "这个站点还没有 DNS 记录或绑定" }}
         </div>
-        <div v-if="purgeOpen" style="margin-top: 8px">
-          <DnsPurgeForm :zone-id="zoneId" :zone-name="currentZoneName" @preview="onPurgePreview" />
-        </div>
-        <div v-else class="small muted">上限 30 条 URL，逐条回显后再发；默认不预填任何 URL。</div>
+        <div v-else class="empty">加载中…</div>
+        <div class="whyline" v-if="doneMsg">{{ doneMsg }}</div>
+        <p class="small muted" style="margin-top: 8px" v-if="!writesOn && !agg.on">标题行右侧的本机写开关没打开，增删改按钮是灰的。</p>
       </div>
 
-      <div class="card">
-        <div class="hd">
-          <h3>DNS 配置向导</h3>
-          <button class="ghost sm" @click="wizardOpen = !wizardOpen">{{ wizardOpen ? "收起" : "展开" }}</button>
-        </div>
-        <DnsSetupWizard v-if="wizardOpen" :domains="domains.data || []" :zones="zones.data || []" @suggest="onWizardSuggest" />
-        <div v-else class="small muted">给自定义域名验证提示该填什么记录；判定规则是本控制台自研，界面上会写清。</div>
+      <!-- 缓存 -->
+      <div class="card" v-if="!agg.on && pane === 'cache'">
+        <h3>按 URL 清理缓存</h3>
+        <DnsPurgeForm :zone-id="zoneId" :zone-name="currentZoneName" @preview="onPurgePreview" />
+        <p class="small muted" style="margin-top: 8px">上限 30 条 URL，逐条回显后再发；默认不预填任何 URL。</p>
       </div>
 
-      <div class="card">
-        <div class="hd">
-          <h3>测速（itdog）</h3>
-        </div>
-        <div class="gen">
-          <input v-model="speedTarget" class="field" style="max-width: 260px" placeholder="example.com 或 IP" spellcheck="false" autocomplete="off" />
-          <button class="primary" :disabled="!speedHost()" @click="openSpeedTest">打开 itdog 测速</button>
-        </div>
-        <div class="small muted" style="margin-top: 6px">
-          默认填当前站点，可改成任意域名 / IP。打开后 itdog 自动开始 ping，节点与线路由 itdog 决定，结果只在那个页面里，本机不回显。
-        </div>
-      </div>
-    </details>
-
-    <!-- 安全规则（折叠）：WAF 只读。规则条数多且平时不用看，收起时给出条数 -->
-    <details class="grp" v-if="!agg.on">
-      <summary>安全规则<span class="gs">WAF {{ waf.data?.ruleCount ?? 0 }} 条 · 只读</span></summary>
-
-      <div class="card" v-if="zoneName">
-        <h3>WAF / 防火墙规则（只读，共 {{ waf.data?.ruleCount ?? 0 }} 条）</h3>
+      <!-- WAF -->
+      <div class="card" v-if="!agg.on && pane === 'waf'">
+        <h3>WAF / 防火墙规则（只读，共 {{ wafCount }} 条）</h3>
         <ErrorNote :err="waf.err" />
-        <div class="list">
+        <div class="list" v-if="wafPhases.length">
           <div v-for="p in wafPhases" :key="p.phase" class="item" style="align-items: flex-start">
             <div style="min-width: 0">
               <div class="k">{{ p.label }}</div>
@@ -903,11 +862,44 @@ async function confirmSheet() {
             </div>
           </div>
         </div>
-        <div class="small muted" style="margin-top: 8px">
-          只读展示，不含命中次数（原因见 docs/14 §8）。
-        </div>
+        <div class="empty" v-else-if="waf.loading">取数中…</div>
+        <div class="empty" v-else>这个站点没有可读的 WAF 规则集</div>
+        <p class="small muted" style="margin-top: 8px">只读展示，不含命中次数（原因见 docs/14 §8）。</p>
       </div>
-    </details>
+
+      <!-- 工具 -->
+      <template v-if="!agg.on && pane === 'tools'">
+        <div class="card">
+          <h3>DNS 配置向导</h3>
+          <DnsSetupWizard :domains="domains.data || []" :zones="zones.data || []" @suggest="onWizardSuggest" />
+          <p class="small muted" style="margin-top: 8px">给自定义域名验证提示该填什么记录；判定规则是本控制台自研，界面上会写清。</p>
+        </div>
+        <div class="card">
+          <h3>测速（itdog）</h3>
+          <div class="gen">
+            <input v-model="speedTarget" class="field" placeholder="example.com 或 IP" spellcheck="false" autocomplete="off" />
+            <button class="primary" :disabled="!speedHost()" @click="openSpeedTest">打开 itdog 测速</button>
+          </div>
+          <p class="small muted" style="margin-top: 6px">
+            默认填当前站点，可改成任意域名 / IP。打开后 itdog 自动开始 ping，节点与线路由 itdog 决定，结果只在那个页面里，本机不回显。
+          </p>
+        </div>
+        <div class="card">
+          <h3>Workers.dev 子域</h3>
+          <p class="small muted" v-if="sub.data?.subdomain">这个账号的 Worker 默认挂在 <code>*.{{ sub.data.subdomain }}.workers.dev</code> 下；自定义域名见 DNS 页的绑定行。</p>
+          <p class="small muted" v-else>这条接口没返回账号级 workers.dev 前缀，先不给结论。</p>
+        </div>
+      </template>
+
+      <!-- 状态 -->
+      <div class="card" v-if="!agg.on && pane === 'status'">
+        <h3>站点状态与 nameserver</h3>
+        <ZoneStatusCard v-if="currentZone" :zone="currentZone" />
+        <p class="small muted" style="margin-top: 8px">
+          状态、套餐、NS 都来自 <code>GET /zones</code> 原字段；接入方式为 CNAME 时，NS 可能不在这里。
+        </p>
+      </div>
+    </template>
 
     <ConfirmSheet :preview="sheet.preview" :busy="sheet.busy" :error="sheet.error" @confirm="confirmSheet" @cancel="cancelSheet" />
   </div>
@@ -916,14 +908,15 @@ async function confirmSheet() {
 <style scoped>
 /* 站点切换器：ghx 的下拉 —— 收起是一个 34 高的描边按钮，展开是扁平浮层（无软投影） */
 .zdd { position: relative; min-width: 0; }
-.zbtn { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--r-sm);
-  border: 1px solid var(--line); background: var(--panel); color: inherit; font-size: var(--t-sm); cursor: pointer;
-  max-width: 72vw; transition: border-color .12s ease, background-color .12s ease; }
+.zbtn { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
+  max-width: 72vw; }
+.zbtn:hover, .zbtn[aria-expanded="true"] { color: var(--fg); background: var(--panel-2); }
 .zbtn:hover, .zbtn[aria-expanded="true"] { border-color: var(--accent); }
 .zname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .chev { font-style: normal; font-size: var(--t-2xs); color: var(--muted); transition: transform .15s ease; }
 .chev.up { transform: rotate(180deg); }
-.zpanel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: min(340px, 86vw);
+.zpanel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(300px, 82vw);
   max-height: 60vh; overflow-y: auto;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 5px; }
 /* 站点检索：粘在清单顶部，滚很远也不丢输入框 */
@@ -1013,4 +1006,43 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 .badge.prox { color: var(--accent); border-color: rgb(var(--accent-rgb) / .45); }
 .badge.blue { color: var(--pending-ink); border-color: rgb(var(--pending-rgb) / .45); background: rgb(var(--pending-rgb) / .1); }
 .badge.live { color: var(--ok); border-color: rgb(var(--ok-rgb) / .4); }
+
+/* ---------- 站点列表（一级页） ---------- */
+.list-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 9px; gap: 8px; }
+.lh-t { font-size: 12.5px; font-weight: 650; color: var(--fg); }
+.lh-t b { font-family: var(--font-num); }
+.lh-s { margin-left: 6px; font-weight: 400; font-size: var(--t-2xs); color: var(--muted); }
+.zsearch-full { height: 34px; margin-bottom: 9px; }
+.zlist { border-top: 1px solid var(--line-soft); }
+.zrow {
+  width: 100%; display: flex; align-items: center; gap: 9px;
+  padding: 11px 2px; border: 0; border-bottom: 1px solid var(--line-soft);
+  background: none; color: inherit; text-align: left; cursor: pointer;
+}
+.zrow:hover { background: var(--panel-2); }
+.zrow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.zrow-name { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zrow-meta { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zchev { flex: none; color: var(--muted); transform: rotate(-90deg); }
+.hintline {
+  margin-top: 12px; padding: 9px 11px; border-left: 3px solid var(--line);
+  background: var(--panel); color: var(--muted); font-size: var(--t-2xs); line-height: 1.5;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+/* ---------- 站点详情头 + 功能分段 ---------- */
+.dtop { display: flex; align-items: center; gap: 9px; margin: 2px 0 10px; }
+.zback {
+  flex: none; display: inline-flex; align-items: center; gap: 1px;
+  height: 28px; padding: 0 8px 0 5px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
+}
+.zback:hover { color: var(--fg); background: var(--panel-2); }
+.dtt { flex: 1; min-width: 0; }
+.dname { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsub { margin-top: 1px; font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panes { display: flex; width: 100%; margin-bottom: 12px; }
+.panes .seg-b { flex: 1; padding: 6px 2px; text-align: center; }
+.zsearch-row { gap: 8px; margin: 2px 0 9px; }
+.zsearch-row .field { flex: 1; min-width: 0; }
 </style>

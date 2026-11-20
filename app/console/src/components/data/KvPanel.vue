@@ -31,6 +31,9 @@ const keys = ref<Slot<KvKeysResult>>(mk());
 const paged = ref<{ cursor?: string; all: any[] }>({ all: [] });
 const hasMore = ref(false);
 const copied = ref("");
+/** 展开某个 Key 的值（只能读文本；二进制会在界面上如实说明） */
+const openKey = ref("");
+const openVal = ref<Slot<string>>(mk());
 
 async function grab<T>(slot: { value: Slot<T> }, fn: () => Promise<T>) {
   slot.value = { ...slot.value, loading: true, err: null };
@@ -64,7 +67,16 @@ async function loadMore() {
 
 onMounted(loadNss);
 /** 切命名空间 = 右栏整个换血，绝不留着上一个 ns 的 key 列表（竞品截图就串过这个号） */
-watch(selectedId, () => { keys.value = mk(); paged.value = { all: [] }; hasMore.value = false; loadKeys(); });
+watch(selectedId, () => {
+  keys.value = mk(); paged.value = { all: [] }; hasMore.value = false; openKey.value = ""; openVal.value = mk(); loadKeys();
+});
+
+async function readKey(name: string) {
+  if (!selectedId.value) return;
+  if (openKey.value === name) { openKey.value = ""; return; }
+  openKey.value = name;
+  await grab(openVal, () => api.kvValue(selectedId.value, name));
+}
 
 function pick(ns: KvNamespace) { selectedId.value = ns.id; pane.value = "detail"; }
 function refresh() { forceFreshWindow(); loadNss(); if (selectedId.value) loadKeys(); }
@@ -270,6 +282,16 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
           <span class="small muted" v-if="kq.trim()">筛出 {{ shownKeys.length }} / 已加载 {{ rows.length }} 条</span>
           <button class="ghost sm" v-if="kq" @click="kq = ''">清空</button>
         </div>
+        <div v-if="openKey" class="valbox">
+          <div class="val-h">
+            <span class="mono ell">{{ openKey }}</span>
+            <button class="ghost xs" v-if="openVal.data !== null" @click="copyContent(String(openVal.data))">复制值</button>
+            <button class="ghost xs" @click="openKey = ''">收起</button>
+          </div>
+          <div class="small muted" v-if="openVal.loading">读取中…</div>
+          <ErrorNote v-else-if="openVal.err" :err="openVal.err" />
+          <pre v-else>{{ openVal.data }}</pre>
+        </div>
         <AsyncBlock :loading="keys.loading && !keys.data" :err="keys.err" :has="rows.length > 0"
           :can-retry="!!keys.err" empty-text="这个命名空间里确实没有 Key（不是没取到）" @retry="loadKeys()">
           <div class="small muted" v-if="kq.trim() && !shownKeys.length" style="margin-bottom:4px">
@@ -286,6 +308,7 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
                     <span v-else class="muted">—</span>
                   </td>
                   <td style="white-space:nowrap">
+                    <button class="ghost xs" @click="readKey(k.name)">{{ openKey === k.name ? "收起" : "查看" }}</button>
                     <button class="ghost xs" @click="copyContent(k.name)">复制</button>
                     <button class="ghost xs danger" @click="askDeleteKey(k)">删除</button>
                   </td>
@@ -315,6 +338,13 @@ function cancelSheet() { preview.value = null; sheetErr.value = ""; }
   padding: 8px 0; border: 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
   border-radius: 0; background: transparent; margin-bottom: 8px; }
 .kfind { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.valbox { margin-bottom: 9px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--inset); overflow: hidden; }
+.val-h { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border-bottom: 1px solid var(--line-soft);
+  background: var(--panel-2); font-size: var(--t-2xs); }
+.val-h .ell { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.valbox pre { margin: 0; padding: 9px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+  font-family: var(--font-num); font-size: var(--t-xs); line-height: 1.55; color: var(--fg-2); }
+.valbox > .small, .valbox > .err { margin: 9px; }
 .kfind input {
   max-width: 260px; padding: 7px 10px; border-radius: var(--r-sm); font-size: var(--t-xs);
   appearance: none; -webkit-appearance: none;

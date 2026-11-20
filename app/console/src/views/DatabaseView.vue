@@ -71,6 +71,5 @@ watch(reloadTick, () => { reloadKey.value++; });
   padding: 6px 4px; font-size: var(--t-xs); font-family: inherit;
   transition: color .12s ease, background .12s ease;
 }
-.seg-b.on { background: var(--grad-brand); color: var(--on-accent); font-weight: 650;
-  box-shadow: 0 3px 10px -2px rgb(var(--accent-rgb) / .5); }
+.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 650; box-shadow: 0 0 0 1px var(--line); }
 </style>

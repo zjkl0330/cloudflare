@@ -5,10 +5,11 @@ import { useGatewayStore } from "./stores/gateway";
 import { gwHealth, isNativeApp } from "./lib/api";
 import { checkUpdate, type UpdateInfo } from "./lib/version";
 import UpdateDialog from "./components/UpdateDialog.vue";
+import QuickIndex from "./components/QuickIndex.vue";
 import Icon from "./components/Icon.vue";
 import { acctState, labelOf, renameAccount, type CfAccount } from "./lib/accounts";
 import { agg, aggAccounts, aggReady, aggSkipped } from "./lib/aggregate";
-import { reloading, reloadTick, requestReload } from "./lib/bus";
+import { pageSub, reloading, reloadTick, requestReload, setPageSub } from "./lib/bus";
 
 const route = useRoute();
 const nav = useRouter();
@@ -54,16 +55,26 @@ const tabs = [
 
 const activeTab = computed(() => String(route.meta.tab ?? "board"));
 const title = computed(() => String(route.meta.title ?? "CF 控制台"));
-/** 顶栏副题：当前屏的英文口径（大写、10px、宽字距），和主标题一起构成 appbar 的两行 */
+/** 副题兜底：各屏数据回来后会用自己的口径（「3 个站点」）覆盖 */
 const SUBTITLES: Record<string, string> = {
-  domains: "EDGE DNS",
-  compute: "WORKERS & PAGES",
-  board: "ANALYTICS",
-  database: "STORAGE",
-  zt: "ZERO TRUST",
-  settings: "SETTINGS",
+  domains: "站点与 DNS",
+  compute: "Workers 与 Pages",
+  board: "账号流量",
+  database: "D1 / KV / R2",
+  zt: "Cloudflare Access",
+  settings: "账号、外观与本机",
 };
-const subtitle = computed(() => SUBTITLES[activeTab.value] ?? "EDGE CONSOLE");
+const subtitle = computed(() => pageSub.value || SUBTITLES[activeTab.value] || "");
+/** 一级页签：底栏只在这五屏出现；详情页走路由栈（顶部返回），不再压底栏 */
+const ROOT_NAMES = new Set(["domains", "compute", "board", "database", "zero-trust"]);
+const isRoot = computed(() => ROOT_NAMES.has(String(route.name ?? "")));
+watch(() => route.fullPath, () => setPageSub(""));
+/** 详情页返回：有历史就退，深链进来没有历史就回它所属的一级页签 */
+function goBack() {
+  const home = tabs.find((t) => t.key === activeTab.value)?.to ?? "/board";
+  if (window.history.state?.back) nav.back();
+  else nav.push(home);
+}
 /** 设置齿轮是开关：不在设置页就进，已经在设置页就返回上一页（看板/详情页原路返回） */
 function toggleSettings() {
   if (activeTab.value === "settings") nav.back();
@@ -86,6 +97,8 @@ const whoLabel = computed(() => {
   return acctState.list.length ? "选择账号" : "未配账号";
 });
 const whoOpen = ref(false);
+/** 功能索引：底栏 5 个键之外的能力都在这里可搜可跳 */
+const indexOpen = ref(false);
 function pickWho(a: CfAccount) {
   whoOpen.value = false;
   const wasAgg = agg.on;
@@ -143,16 +156,16 @@ async function saveRename(a: CfAccount) {
 </script>
 
 <template>
-  <div class="shell">
-    <!-- 环境光：三团光斑压在深空蓝底上。纯装饰，不参与布局，也不吃点击。 -->
-    <div class="ambient" aria-hidden="true"><span class="orb o1" /><span class="orb o2" /><span class="orb o3" /></div>
-
+  <div class="shell" :class="{ detail: !isRoot }">
     <header class="topbar">
+      <button v-if="!isRoot" class="back" title="返回" aria-label="返回" @click="goBack">
+        <Icon name="back" :size="15" />
+      </button>
       <div class="brand">
-        <span class="logo-mark"><Icon name="cloud" :size="19" /></span>
+        <span v-if="isRoot" class="logo-mark"><Icon name="cloud" :size="17" /></span>
         <span class="brand-tx">
           <b>{{ title }}</b>
-          <small>{{ subtitle }}</small>
+          <small v-if="subtitle">{{ subtitle }}</small>
         </span>
         <span class="dot" :class="{ off: !gw.configured }" />
       </div>
@@ -169,6 +182,9 @@ async function saveRename(a: CfAccount) {
         </button>
         <button class="tbtn" :class="{ spin: reloading }" :disabled="reloading" title="刷新当前屏" aria-label="刷新当前屏" @click="requestReload">
           <Icon name="refresh" :size="14" />
+        </button>
+        <button class="tbtn" title="功能索引（能去哪）" aria-label="功能索引" @click="indexOpen = true">
+          <Icon name="search" :size="14" />
         </button>
         <button class="cfg" :class="{ on: activeTab === 'settings' }" :title="activeTab === 'settings' ? '返回' : '设置'" aria-label="设置" @click="toggleSettings"><Icon name="gear" :size="14" /></button>
       </div>
@@ -226,8 +242,9 @@ async function saveRename(a: CfAccount) {
     </main>
 
     <UpdateDialog v-if="updateInfo" :info="updateInfo" @close="updateInfo = null" />
+    <QuickIndex v-if="indexOpen" @close="indexOpen = false" />
 
-    <nav class="tabbar" aria-label="主导航">
+    <nav v-if="isRoot" class="tabbar" aria-label="主导航">
       <!-- 桌面档底栏转成左栏后，栏顶要有个名字压阵（不然五个键孤零零贴在浏览器边上）。
            手机档 display:none，不占网格格，所以底栏那 5 列的判定一个字没动。 -->
       <span class="rail-brand">

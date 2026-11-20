@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import Icon from "./Icon.vue";
 
 /** 一个动作。有 why 就表示这个动作现在做不了，点了要把原因说出来（不能只灰着不解释） */
@@ -12,7 +12,7 @@ interface RowAction {
   why?: string;
 }
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     title: string;
     /** 灰字元信息串，用「 • 」分隔，字段缺失就整段不显示 */
@@ -20,17 +20,16 @@ const props = withDefaults(
     /** 徽章可以有 title：界面写中文，来源字段/CF 原名放这里，别把专有名词丢掉 */
     badges?: { text: string; cls?: string; title?: string }[];
     actions?: RowAction[];
-    /** 超过这个数量先收起来，和竞品「默认显示 8 个」一致 */
-    max?: number;
+    /** 没有下钻的行（只读清单）不画右侧箭头，免得看起来能点 */
+    openable?: boolean;
   }>(),
-  { meta: "", badges: () => [], actions: () => [], max: 8 },
+  { meta: "", badges: () => [], actions: () => [], openable: true },
 );
 
 const emit = defineEmits<{ (e: "go", a: RowAction): void; (e: "open"): void }>();
 
-const open = ref(false);
-const shown = computed(() => (open.value ? props.actions : props.actions.slice(0, props.max)));
-const hidden = computed(() => Math.max(0, props.actions.length - props.max));
+/** 动作默认收起：一行里摆十个迷你键，等于没有入口。点「操作 N」才铺开，标签仍然是全的。 */
+const actsOpen = ref(false);
 const why = ref<RowAction | null>(null);
 
 function tap(a: RowAction) {
@@ -52,11 +51,20 @@ function tap(a: RowAction) {
       </div>
       <div class="right">
         <span v-for="b in badges" :key="b.text" class="badge" :class="b.cls" :title="b.title">{{ b.text }}</span>
-        <button v-if="hidden" class="fold" @click.stop="open = !open">{{ open ? "收起" : "更多 " + hidden }}</button>
+        <Icon v-if="openable" class="row-chev" name="chevron" :size="12" />
       </div>
     </div>
-    <div class="acts" v-if="actions.length">
-      <button v-for="a in shown" :key="a.go" class="act" :class="{ off: a.why }" @click.stop="tap(a)">
+    <button
+      v-if="actions.length"
+      class="acts-toggle"
+      :aria-expanded="actsOpen"
+      @click.stop="actsOpen = !actsOpen"
+    >
+      操作 {{ actions.length }}
+      <Icon class="chev" name="chevron" :size="10" :class="{ up: actsOpen }" />
+    </button>
+    <div class="acts" v-if="actsOpen && actions.length">
+      <button v-for="a in actions" :key="a.go" class="act" :class="{ off: a.why }" @click.stop="tap(a)">
         <Icon class="ai" :name="a.ico" />
         <span>{{ a.label }}</span>
       </button>

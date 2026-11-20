@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import ErrorNote from "../components/ErrorNote.vue";
+import { setPageSub } from "../lib/bus";
 import UnavailableNote from "../components/board/UnavailableNote.vue";
 import { api, gwHealth, gwMeta, GwError, isNativeApp, setWritesOptIn, writesOptIn, probeToken, type Account } from "../lib/api";
 import { acctState, addAccount, findAccount, removeAccount, renameAccount, labelOf, createVault, unlockAccounts, lockAccounts, destroyAll, type CfAccount } from "../lib/accounts";
@@ -65,6 +66,9 @@ const pickStale = computed(() => !!gw.config.account && accounts.value.every((a)
  * 三件事：验证并添加（probeToken 先打一次 /v1/accounts）、切换（改 config.account）、删除。
  * ========================================================================== */
 const accts = computed(() => acctState.list);
+watch(() => acctState.list.length, (n) => {
+  setPageSub(directMode ? `${n} 个账号 · 直连 Cloudflare` : "网关与本机配置");
+}, { immediate: true });
 const newAlias = ref("");
 const newToken = ref("");
 const revealNew = ref(false);

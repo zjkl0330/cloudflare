@@ -32,7 +32,7 @@ defineEmits<{ close: [] }>();
 .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .btns a { display: inline-block; height: 34px; line-height: 32px; padding: 0 13px; border-radius: var(--r-sm);
   font-size: var(--t-sm); text-decoration: none; cursor: pointer; }
-.btns a.primary { background: var(--grad-brand); color: #fff; font-weight: 650;
+.btns a.primary { background: var(--accent); color: var(--on-accent); font-weight: 650;
   box-shadow: 0 8px 22px -8px rgb(var(--accent-rgb) / .6); }
 .btns a.ghost { border: 1px solid var(--line); color: var(--fg-2); background: var(--panel-2); }
 .later { margin-top: 12px; background: none; border: 0; color: var(--muted); font-size: var(--t-2xs); cursor: pointer; text-decoration: underline; }

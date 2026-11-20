@@ -1021,6 +1021,16 @@ app.get(
   }),
 );
 app.get("/v1/kv", route(async (c) => ({ result: (await reads.kvNamespaces(cf(c), E(c))).data })));
+/** 读单个 Key：返回 { result: "文本" }，界面点 Key 名就能展开值（之前只能写不能读） */
+app.get(
+  "/v1/kv/:ns/values/:key",
+  route(async (c) => {
+    const ns = param(c, "ns");
+    const key = param(c, "key");
+    const r = await reads.kvValue(cf(c), E(c), ns, key);
+    return { result: r.data ?? "" };
+  }),
+);
 app.get(
   "/v1/kv/:ns/keys",
   route(async (c) => {
