@@ -180,7 +180,7 @@ function open(r: BoardRow, c?: string) {
         <div class="bstat">
           <span class="bl">Worker</span>
           <b class="bn">{{ wCount === null ? "—" : num(wCount) }}</b>
-          <span class="bs">{{ wErr ? "没取到（看下方错误）" : `${assets} 个带静态资源` }}</span>
+          <span class="bs">{{ wErr ? "没取到（看下方错误）" : `${assets} 个静态` }}</span>
         </div>
         <div class="bstat">
           <span class="bl">Pages 项目</span>
@@ -237,24 +237,24 @@ function open(r: BoardRow, c?: string) {
 <style scoped>
 .board { margin-bottom: 12px; }
 .bh { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-/* 看板标题与全站卡片眉题同一档：小号、大写字距、muted（不是又一种大标题） */
+/* 看板标题与全站卡片眉题同一档：小号、句首大写、muted（不是又一种大标题） */
 .bh h3 { margin: 0; font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 
-/* 4 格合计：ghx 的读数带 —— 1px 发丝线切格，不再一格一个圆角盒子 */
+/* 4 格合计：一行读数带，像仪表的四枚指针，不占两屏高 */
 .bstats {
   display: grid; gap: 1px; margin: 10px 0 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   background: var(--line); border: 1px solid var(--line);
   border-radius: var(--r-sm); overflow: hidden;
 }
 @media (min-width: 640px) { .bstats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .bstat {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
-  padding: 10px 11px; background: var(--bg);
+  padding: 9px 8px; background: var(--bg);
 }
-.bl { font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em; }
-.bn { font-family: var(--font-num); font-size: var(--t-lg); line-height: 1.2; font-weight: 700; letter-spacing: -.02em;
+.bl { font-size: 10.5px; color: var(--muted); letter-spacing: 0; }
+.bn { font-family: var(--font-num); font-size: var(--t-lg); line-height: 1.2; font-weight: 600; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums; }
 .bn.small-num { font-size: var(--t-md); }
 .bs {
@@ -276,7 +276,7 @@ function open(r: BoardRow, c?: string) {
 .bp {
   flex: none; width: 22px; height: 22px; border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-num); font-size: var(--t-2xs); font-weight: 700;
+  font-family: var(--font-num); font-size: var(--t-2xs); font-weight: 600;
   color: var(--muted); background: var(--bg); border: 1px solid var(--line);
 }
 .bp.worker { color: var(--accent); border-color: var(--accent-dim); }

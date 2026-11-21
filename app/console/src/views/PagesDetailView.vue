@@ -679,15 +679,15 @@ function refresh() {
       <p class="small muted" style="margin: 0 0 8px">最终域名：<code>{{ domainFull || "—" }}</code></p>
       <p class="small errtext" v-if="domainErr">{{ domainErr }}</p>
       <div class="list" v-if="domains.data?.length">
-        <div v-for="(d, i) in domains.data" :key="i" class="item">
-          <div style="min-width: 0">
+        <div v-for="(d, i) in domains.data" :key="i" class="item dom-item">
+          <div class="dom-main">
             <div class="k">{{ d.name || d.domain || d.id || "—" }}</div>
             <div class="small muted">
               <span v-if="d.created_on">绑定于 {{ dt(d.created_on) }}</span>
               <span v-else>pages.dev 子域不在这份列表里，它始终可用</span>
             </div>
           </div>
-          <div class="v small" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+          <div class="v small dom-acts">
             <span v-if="d.status" class="badge" :class="{ live: d.status === 'active' }">{{ d.status === "active" ? "已生效" : statusText(d.status) }}</span>
             <button v-if="d.zone_id || d.zone_tag" class="ghost sm" type="button" @click="goZone(String(d.zone_id || d.zone_tag))">DNS</button>
             <button class="ghost sm" type="button" @click="speedTest(String(d.name || d.domain))">测速</button>
@@ -815,7 +815,7 @@ function refresh() {
 /* 详情页头：名称 + 类型注脚；返回键退到右侧，不抢标题的层级 */
 .whead { justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
 .hname { gap: 8px; align-items: baseline; min-width: 0; flex: 1; }
-.wname { margin: 0; font-size: var(--t-lg); font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.wname { margin: 0; font-size: var(--t-lg); font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
 /* 锚点条：横向滚动，不再折成两三行把首屏吃掉 */
 .jn { flex-wrap: nowrap; gap: 6px; margin-bottom: 12px; padding-bottom: 2px;
   overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
@@ -836,7 +836,7 @@ function refresh() {
 
 /* 卡片标题在 .row 里时（部署历史那张）也要落到同一档眉题 */
 .card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
-  font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
+  font-size: var(--t-sm); color: var(--fg); font-weight: 600; letter-spacing: .01em; }
 
 /* 部署历史：行内徽章允许换行，但徽章自身不拆字；左栏吃掉剩余宽度，别让右栏把 ID 挤成两行 */
 .item-wrap .item > div:first-child { flex: 1; }
@@ -893,7 +893,7 @@ button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
   display: flex; align-items: center; gap: 8px; padding: 0 2px 7px;
   border-bottom: 1px solid var(--line-soft); cursor: pointer; list-style: none;
   font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
-  letter-spacing: .04em; text-transform: uppercase;
+  letter-spacing: 0; text-transform: none;
 }
 .foldcard > summary::-webkit-details-marker { display: none; }
 .foldcard > summary::before {
@@ -909,4 +909,8 @@ button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .foldcard > .card > h3 { display: none; }
 /* 锚点跳过来时，折叠态也要看得见落点 */
 .foldcard.flash > summary { color: var(--accent); border-bottom-color: var(--accent); }
+/* 域名条目：标题与元信息占满一行，动作按钮落到第二行，窄屏不挤成竖排 */
+.item.dom-item { flex-direction: column; align-items: stretch; gap: 8px; }
+.dom-main { min-width: 0; }
+.item .dom-acts { display: flex; width: 100%; gap: 6px; flex-wrap: wrap; justify-content: flex-start; max-width: none; }
 </style>

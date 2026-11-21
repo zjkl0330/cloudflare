@@ -78,13 +78,13 @@ const WORD: Record<string, string> = { ok: "正常", warn: "警告", bad: "严�
 .warn .bulb { background: var(--warn); }
 .bad .bulb { background: var(--bad); }
 .ok .bulb { background: var(--ok); }
-.word { font-size: var(--t-base); font-weight: 700; letter-spacing: .04em; }
+.word { font-size: var(--t-base); font-weight: 600; letter-spacing: .04em; }
 .warn .word { color: var(--warn); }
 .bad .word { color: var(--bad); }
 .ok .word { color: var(--ok); }
 .unknown .word { color: var(--muted); }
 .ttl { margin-left: auto; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .msg { margin: 10px 0 0; font-size: var(--t-sm); line-height: 1.6; color: var(--fg-2); }
 .rulesBtn {
   margin-top: 9px; padding: 0; border: 0; background: none; font: inherit;

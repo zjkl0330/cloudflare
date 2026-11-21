@@ -421,8 +421,8 @@ const listEmpty = computed(() => !loading.value && tokens.value?.length === 0 &&
 .plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 /* 分区眉题统一：小一号 + 字距，与 Worker / Pages 详情的节标题同一档 */
 .opt { margin-top: 12px; }
-.opt-h { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; letter-spacing: .04em;
-  text-transform: uppercase; margin-bottom: 6px; }
+.opt-h { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; letter-spacing: 0;
+  text-transform: none; margin-bottom: 6px; }
 .groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow: auto; }
 .gs { font-size: var(--t-2xs); opacity: .65; margin-left: 4px; }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }

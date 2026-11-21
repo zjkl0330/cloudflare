@@ -135,7 +135,7 @@ const bucketFold = useFold(() => shownBuckets.value);
 /* 详情栏本身就是一块面板：里面不再套第二层卡，标题走眉题；读数轨只留 pane 一条 */
 .card { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
 .card::before { display: none; }
-.card > h3 { font-size: var(--t-2xs); letter-spacing: .06em; text-transform: uppercase;
+.card > h3 { font-size: var(--t-2xs); letter-spacing: 0; text-transform: none;
   color: var(--muted); font-weight: 600; margin: 0 0 8px; }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 </style>

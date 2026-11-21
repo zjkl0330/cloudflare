@@ -76,7 +76,7 @@ function copyOne(n: string) { copyText(n, n); }
 <style scoped>
 .zc { display: flex; flex-direction: column; gap: 8px; }
 .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.nm { font-size: var(--t-md); font-weight: 650; word-break: break-all; }
+.nm { font-size: var(--t-md); font-weight: 600; word-break: break-all; }
 .zid { margin: 0; }
 .zid code { font-family: var(--font-num); word-break: break-all; }
 .badge.ok { color: var(--ok); border-color: rgb(var(--ok-rgb) / .4); }
@@ -87,7 +87,7 @@ function copyOne(n: string) { copyText(n, n); }
 .ns { padding: 10px 12px; border-radius: var(--r-sm); background: var(--panel-2); border: 1px solid var(--line-soft); color: var(--fg); }
 .ns.off { opacity: .7; }
 .ns-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--t-2xs); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  letter-spacing: 0; text-transform: none; color: var(--muted); margin-bottom: 6px; }
 .ns-h .all { flex: none; font: inherit; font-size: var(--t-2xs); height: 24px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--panel); color: var(--fg-2); cursor: pointer; letter-spacing: 0; text-transform: none; font-weight: 400; }
 .ns-h .all:hover { border-color: rgb(var(--accent-rgb) / .5); color: var(--accent); }

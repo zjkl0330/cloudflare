@@ -13,9 +13,13 @@ import { LIST_PRESETS, listCount, setListCount } from "../lib/lists";
 import { boardPrefs, SUB_TILE_LABELS, toggleSubTile } from "../lib/boardPrefs";
 import {
   loadAppearance, saveAppearance,
-  TABBAR_OPTIONS, LABEL_OPTIONS, BG_OPTIONS, MOTION_OPTIONS,
+  TABBAR_OPTIONS, LABEL_OPTIONS, MOTION_OPTIONS, DENSITY_OPTIONS, SIZE_OPTIONS, SUB_OPTIONS,
   type Appearance,
 } from "../lib/appearance";
+import {
+  loadViewPrefs, saveViewPrefs, LANDING_OPTIONS, COMPUTE_OPTIONS, DB_OPTIONS,
+  type ViewPrefs,
+} from "../lib/views";
 import { dt } from "../lib/fmt";
 import { useGatewayStore } from "../stores/gateway";
 import { APP_VERSION, ACCEL_BASES, checkUpdate, type UpdateInfo } from "../lib/version";
@@ -54,10 +58,83 @@ const theme = ref<ThemePref>(loadThemePref());
 function setTheme(v: ThemePref) { theme.value = saveThemePref(v); }
 /* ---------- 强调色档：只换控件/选中态，读数轨四态编码不受影响（见 main.css [data-accent]） ---------- */
 const accent = ref<AccentPref>(loadAccentPref());
-/** 外观偏好（底栏形态 / 文字 / 背景 / 动效），和 theme 分两份存 */
+/** 外观偏好（底栏形态 / 文字 / 动效 / 密度 / 字号 / 副题），和 theme 分两份存 */
 const look = ref<Appearance>(loadAppearance());
 function setLook(patch: Partial<Appearance>) {
   look.value = saveAppearance({ ...look.value, ...patch });
+}
+/** 交互偏好：启动页与两个分段页的默认档 */
+const views = ref<ViewPrefs>(loadViewPrefs());
+function setView(patch: Partial<ViewPrefs>) {
+  views.value = saveViewPrefs({ ...views.value, ...patch });
+}
+
+/* ---------- 偏好备份：只搬"本机习惯"，绝不碰令牌 / 账号 / 网关地址 ---------- */
+const PREF_KEYS = [
+  "cfconsole.theme.v1",
+  "cfconsole.accent.v1",
+  "cfconsole.appearance.v1",
+  "cfconsole.views.v1",
+  "cfconsole.listCount.v1",
+  "cfconsole.board.prefs.v1",
+];
+const backup = ref("");
+const backupMsg = ref("");
+const backupErr = ref("");
+function exportPrefs() {
+  backupErr.value = "";
+  backupMsg.value = "";
+  const prefs: Record<string, string> = {};
+  for (const k of PREF_KEYS) {
+    const v = localStorage.getItem(k);
+    if (v != null) prefs[k] = v;
+  }
+  backup.value = JSON.stringify({ app: "cf-console", version: APP_VERSION, prefs }, null, 2);
+  backupMsg.value = "已生成，复制后可在另一台设备导入";
+}
+async function copyBackup() {
+  backupErr.value = "";
+  try {
+    await navigator.clipboard.writeText(backup.value);
+    backupMsg.value = "已复制到剪贴板";
+  } catch {
+    backupMsg.value = "复制失败，长按上面的文本框手动复制";
+  }
+}
+function importPrefs() {
+  backupErr.value = "";
+  backupMsg.value = "";
+  let parsed: any;
+  try {
+    parsed = JSON.parse(backup.value);
+  } catch {
+    backupErr.value = "这不是一段能解析的 JSON";
+    return;
+  }
+  const prefs = parsed?.prefs;
+  if (!prefs || typeof prefs !== "object") {
+    backupErr.value = "缺少 prefs 字段 —— 请粘贴本页导出时生成的整段内容";
+    return;
+  }
+  let n = 0;
+  for (const k of PREF_KEYS) {
+    if (typeof prefs[k] === "string") {
+      localStorage.setItem(k, prefs[k]);
+      n++;
+    }
+  }
+  if (!n) {
+    backupErr.value = "这段内容里没有可导入的偏好项";
+    return;
+  }
+  backupMsg.value = `已导入 ${n} 项，正在重新载入…`;
+  setTimeout(() => location.reload(), 600);
+}
+function resetPrefs() {
+  if (!confirm("重置本机偏好只会清掉外观、默认视图、列表条数和看板副表盘，账号与令牌不动。继续？")) return;
+  for (const k of PREF_KEYS) localStorage.removeItem(k);
+  backupMsg.value = "已重置，正在重新载入…";
+  setTimeout(() => location.reload(), 400);
 }
 /** 强调色色卡：写死的是"这个选项本身"的品牌色，不跟当前 accent 变 */
 const SWATCH: Record<AccentPref, string> = {
@@ -513,7 +590,7 @@ async function clearGitTok(p: GitPlatform) {
     </details>
 
     <details class="grp" open>
-      <summary>外观与更新<span class="gs">深浅 · 强调色 · 列表条数 · 版本</span></summary>
+      <summary>外观与更新<span class="gs">深浅 · 强调色 · 字号 · 密度 · 版本</span></summary>
 
     <!-- ============ 外观：深浅档 + 强调色档 ============ -->
     <div class="card">
@@ -558,9 +635,21 @@ async function clearGitTok(p: GitPlatform) {
         </div>
       </div>
       <div class="opt">
-        <div class="opt-h">背景</div>
+        <div class="opt-h">字号</div>
         <div class="row">
-          <button v-for="o in BG_OPTIONS" :key="o.value" class="chip" :class="{ on: look.bg === o.value }" @click="setLook({ bg: o.value })">{{ o.label }}</button>
+          <button v-for="o in SIZE_OPTIONS" :key="o.value" class="chip" :class="{ on: look.size === o.value }" @click="setLook({ size: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">列表密度</div>
+        <div class="row">
+          <button v-for="o in DENSITY_OPTIONS" :key="o.value" class="chip" :class="{ on: look.density === o.value }" @click="setLook({ density: o.value })">{{ o.label }}</button>
+        </div>
+      </div>
+      <div class="opt">
+        <div class="opt-h">顶栏副题</div>
+        <div class="row">
+          <button v-for="o in SUB_OPTIONS" :key="o.value" class="chip" :class="{ on: look.sub === o.value }" @click="setLook({ sub: o.value })">{{ o.label }}</button>
         </div>
       </div>
       <div class="opt">
@@ -625,6 +714,57 @@ async function clearGitTok(p: GitPlatform) {
       <div v-else-if="checked" class="small muted" style="margin-top: 8px">已是最新版本。</div>
       <div v-if="updateErr" class="small" style="color: var(--bad); margin-top: 8px">{{ updateErr }}</div>
     </div>
+    </details>
+
+    <details class="grp" open>
+      <summary>默认视图<span class="gs">启动页 · 计算分段 · 数据库分段</span></summary>
+      <div class="card">
+        <h3>打开时落在哪</h3>
+        <div class="small muted">URL 里的参数优先：分享链接写明了分段，就不会被这里的默认值改掉。</div>
+        <div class="opt">
+          <div class="opt-h">启动页</div>
+          <div class="row">
+            <button v-for="o in LANDING_OPTIONS" :key="o.value" class="chip" :class="{ on: views.landing === o.value }" @click="setView({ landing: o.value })">{{ o.label }}</button>
+          </div>
+        </div>
+        <div class="opt">
+          <div class="opt-h">计算页默认分段</div>
+          <div class="row">
+            <button v-for="o in COMPUTE_OPTIONS" :key="o.value" class="chip" :class="{ on: views.compute === o.value }" @click="setView({ compute: o.value })">{{ o.label }}</button>
+          </div>
+        </div>
+        <div class="opt">
+          <div class="opt-h">数据库默认分段</div>
+          <div class="row">
+            <button v-for="o in DB_OPTIONS" :key="o.value" class="chip" :class="{ on: views.db === o.value }" @click="setView({ db: o.value })">{{ o.label }}</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="grp">
+      <summary>偏好备份<span class="gs">导出 · 导入 · 重置</span></summary>
+      <div class="card">
+        <h3>本机偏好</h3>
+        <div class="small muted">
+          只导出外观、默认视图、列表条数和看板副表盘。账号、令牌、网关地址与仓库密钥都不在其中。
+        </div>
+        <div class="row" style="margin-top: 12px">
+          <button class="ghost" @click="exportPrefs">导出为 JSON</button>
+          <button class="ghost" :disabled="!backup" @click="copyBackup">复制</button>
+          <button class="ghost" :disabled="!backup" @click="importPrefs">应用这段配置</button>
+          <button class="ghost" @click="resetPrefs">重置偏好</button>
+        </div>
+        <textarea
+          v-model="backup"
+          class="field"
+          style="margin-top: 10px; min-height: 96px"
+          placeholder="导出后这里是 JSON；也可以把另一台设备导出的内容粘进来再点「应用这段配置」"
+          spellcheck="false"
+        ></textarea>
+        <div v-if="backupMsg" class="small muted" style="margin-top: 6px">{{ backupMsg }}</div>
+        <div v-if="backupErr" class="small" style="margin-top: 6px; color: var(--bad)">{{ backupErr }}</div>
+      </div>
     </details>
 
     <details class="grp" open>
@@ -923,7 +1063,7 @@ async function clearGitTok(p: GitPlatform) {
 .sws { gap: 8px; }
 .sw {
   width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; padding: 0;
-  display: inline-grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700;
+  display: inline-grid; place-items: center; color: #fff; font-size: 12px; font-weight: 600;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); cursor: pointer;
 }
 .sw.on { border-color: var(--fg); box-shadow: inset 0 0 0 2px var(--bg-2); }
@@ -961,7 +1101,7 @@ async function clearGitTok(p: GitPlatform) {
    （全局 .item .k 是 nowrap + 省略号，那是给纯展示行写的，这里覆盖掉） */
 .accitem { flex-wrap: wrap; align-items: flex-start; }
 .accitem .k { flex: 1 1 180px; min-width: 0; white-space: normal; }
-.opt-h { font-size: var(--t-xs); color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
+.opt-h { font-size: var(--t-xs); color: var(--muted); letter-spacing: 0; margin-bottom: 6px; }
 /* 强调色预览点：这是"选项本身"的固定色，不是界面当前色，所以写字面值 */
 .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; border: 1px solid rgb(0 0 0 / .18); }
 /* 这两个点是"选项色卡"，必须写死对应的品牌色，不能跟着当前 --accent 变（否则选蓝后橙色项也变蓝） */

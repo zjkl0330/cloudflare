@@ -609,7 +609,7 @@ function cancelSheet() {
 }
 .wd::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 2px; flex: none; }
 .wh { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.wh h3 { margin: 0; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
+.wh h3 { margin: 0; font-size: var(--t-md); font-weight: 600; letter-spacing: -.01em; }
 .wx {
   flex: none; height: 28px; padding: 0 9px; background: var(--panel-2); border: 1px solid var(--line);
   border-radius: var(--r-sm); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
@@ -618,7 +618,7 @@ function cancelSheet() {
 .warnbox { font-size: var(--t-xs); line-height: 1.6; padding: 8px 10px; border-radius: 0 var(--r-sm) var(--r-sm) 0;
   color: var(--warn); background: rgb(var(--warn-rgb) / .08); border: 0; border-left: 3px solid var(--warn); }
 .sec { display: flex; flex-direction: column; gap: 4px; padding: 9px 10px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); background: var(--panel-2); }
-.sec-t { font-size: var(--t-xs); font-weight: 650; color: var(--fg-2); }
+.sec-t { font-size: var(--t-xs); font-weight: 600; color: var(--fg-2); }
 .trg { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding: 7px 0; border-top: 1px solid var(--line-soft); }
 .trg:first-of-type { border-top: 0; }
 .trg-main { min-width: 0; display: flex; flex-direction: column; gap: 2px; }

@@ -406,7 +406,7 @@ function cancelSheet() {
 }
 .gitdlg::before { content: ""; width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 2px; flex: none; }
 .ghead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.ghead h3 { margin: 0; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
+.ghead h3 { margin: 0; font-size: var(--t-md); font-weight: 600; letter-spacing: -.01em; }
 .gx {
   flex: none; height: 28px; padding: 0 9px; background: var(--panel-2); border: 1px solid var(--line);
   border-radius: var(--r-sm); color: var(--muted); font-size: var(--t-2xs); cursor: pointer;
@@ -418,7 +418,7 @@ function cancelSheet() {
 .gtop { justify-content: space-between; align-items: center; }
 .gchips { gap: 4px; flex-wrap: wrap; }
 .gsec { display: flex; flex-direction: column; gap: 4px; padding: 9px 10px; border: 1px solid var(--line-soft); border-radius: var(--r-sm); background: var(--panel-2); }
-.gsec-t { font-size: var(--t-xs); font-weight: 650; color: var(--fg-2); }
+.gsec-t { font-size: var(--t-xs); font-weight: 600; color: var(--fg-2); }
 .gform { flex-wrap: wrap; gap: 8px; align-items: flex-end; }
 .gf { flex: 1; min-width: 140px; }
 .gf .lbl { margin: 0 0 4px; }

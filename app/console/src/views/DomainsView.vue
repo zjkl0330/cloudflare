@@ -1024,7 +1024,7 @@ async function confirmSheet() {
 .hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px;
   flex-wrap: wrap; }
 .hd h3 { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 /* 窄屏：眉题独占一行，写开关和两个主行动掉到下一行，避免按钮贴着卡片边缘 */
 @media (max-width: 430px) {
   .hd { align-items: flex-start; }
@@ -1034,7 +1034,7 @@ async function confirmSheet() {
 /* 表单区不另起一只圆角盒子，用一条发丝线把它跟列表切开 */
 .editor { border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; padding: 10px 0 4px; margin: 10px 0; background: transparent; }
 .editor h4 { margin: 0 0 8px; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .whyline.ok { color: var(--ok); background: rgb(var(--ok-rgb) / .08); border-left-color: var(--ok); }
 .errtext { color: var(--bad); }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
@@ -1058,7 +1058,7 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 .hrow { background: transparent; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; padding: 10px 2px; }
 .hrow:last-child { border-bottom: 0; }
 .hhead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.hname { font-size: var(--t-sm); font-weight: 650; word-break: break-all; margin-right: 2px; }
+.hname { font-size: var(--t-sm); font-weight: 600; word-break: break-all; margin-right: 2px; }
 .hline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 7px;
   padding-top: 7px; border-top: 1px solid var(--line-soft); font-size: var(--t-xs); }
 .hrow > .hline:first-of-type { border-top: 0; padding-top: 4px; }
@@ -1076,7 +1076,7 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 .aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
   padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 600; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
 .badge.acctag { color: var(--fg-2); border-color: var(--line); font-family: var(--font-num);
   max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1090,7 +1090,7 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 
 /* ---------- 站点列表（一级页） ---------- */
 .list-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 9px; gap: 8px; }
-.lh-t { font-size: 12.5px; font-weight: 650; color: var(--fg); }
+.lh-t { font-size: 12.5px; font-weight: 600; color: var(--fg); }
 .lh-t b { font-family: var(--font-num); }
 .lh-s { margin-left: 6px; font-weight: 400; font-size: var(--t-2xs); color: var(--muted); }
 .zsearch-full { height: 34px; margin-bottom: 9px; }
@@ -1102,7 +1102,7 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 }
 .zrow:hover { background: var(--panel-2); }
 .zrow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.zrow-name { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zrow-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zrow-meta { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zchev { flex: none; color: var(--muted); transform: rotate(-90deg); }
 .hintline {
@@ -1136,7 +1136,7 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
 }
 .zback:hover { color: var(--fg); background: var(--panel-2); }
 .dtt { flex: 1; min-width: 0; }
-.dname { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dname { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsub { margin-top: 1px; font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .panes { display: flex; width: 100%; margin-bottom: 12px; }
 .panes .seg-b { flex: 1; padding: 6px 2px; text-align: center; }

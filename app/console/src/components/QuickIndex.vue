@@ -99,7 +99,7 @@ onMounted(() => input.value?.focus());
 }
 .qi-h {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px 8px; font-size: 15px; font-weight: 650;
+  padding: 12px 14px 8px; font-size: 15px; font-weight: 600;
 }
 .qi-x {
   border: 0; background: none; color: var(--brand-ink); font-size: var(--t-xs); cursor: pointer;

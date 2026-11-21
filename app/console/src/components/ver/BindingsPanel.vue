@@ -322,7 +322,7 @@ const noBindings = computed(() => !props.loading && !props.err && (props.binding
 .bind { display: flex; flex-direction: column; gap: 10px; }
 .cat { display: flex; flex-direction: column; gap: 4px; }
 .ttl { margin: 6px 0 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .mono { font-family: var(--font-num); }
 .go { flex: none; color: var(--muted); font-size: 16px; line-height: 1; }
 .errtext { color: var(--bad); }

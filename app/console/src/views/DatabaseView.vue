@@ -11,6 +11,7 @@ import { useRoute, useRouter } from "vue-router";
 import D1Panel from "../components/data/D1Panel.vue";
 import KvPanel from "../components/data/KvPanel.vue";
 import R2Panel from "../components/data/R2Panel.vue";
+import { loadViewPrefs } from "../lib/views";
 
 type Store = "d1" | "kv" | "r2";
 const SEG: Array<{ k: Store; label: string }> = [
@@ -22,10 +23,10 @@ const SEG: Array<{ k: Store; label: string }> = [
 const route = useRoute();
 const nav = useRouter();
 
-/** 初始值只从 URL 读一次：URL 是这屏的唯一事实来源，别再存一份 localStorage 偏好 */
+/** 初始值：URL 里有 store 就用它，否则用设置页的默认档（URL 永远是唯一事实来源） */
 function fromUrl(): Store {
   const s = route.query.store;
-  return s === "kv" || s === "r2" ? s : "d1";
+  return s === "kv" || s === "r2" ? s : s === "d1" ? "d1" : loadViewPrefs().db;
 }
 const store = ref<Store>(fromUrl());
 
@@ -71,5 +72,5 @@ watch(reloadTick, () => { reloadKey.value++; });
   padding: 6px 4px; font-size: var(--t-xs); font-family: inherit;
   transition: color .12s ease, background .12s ease;
 }
-.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 650; box-shadow: 0 1px 2px rgba(31, 35, 40, .08); }
+.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
 </style>

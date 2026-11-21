@@ -235,7 +235,7 @@ function dash(v: unknown) {
   padding: 8px 0; border: 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft);
   border-radius: 0; background: transparent; }
 .ttl { margin: 10px 0 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .pc { color: var(--muted); font-size: var(--t-2xs); margin-left: 4px; }
 .gen .field { max-width: 110px; }

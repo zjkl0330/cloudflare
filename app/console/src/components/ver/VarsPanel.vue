@@ -308,7 +308,7 @@ function cancelWrite() {
 .vars { display: flex; flex-direction: column; gap: 12px; }
 .block { display: flex; flex-direction: column; gap: 6px; }
 .ttl { margin: 0; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .mono { font-family: var(--font-num); }
 .errtext { color: var(--bad); }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }

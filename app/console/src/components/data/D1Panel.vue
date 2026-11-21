@@ -305,7 +305,7 @@ table td { padding: 3px 6px; border-bottom: 1px solid var(--line-soft); }
 .card { background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
 .card::before { display: none; }
 .card + .card { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
-.card > h3 { font-size: var(--t-2xs); letter-spacing: .06em; text-transform: uppercase;
+.card > h3 { font-size: var(--t-2xs); letter-spacing: 0; text-transform: none;
   color: var(--muted); font-weight: 600; margin: 0 0 8px; }
 .uuid { font-size: var(--t-xs); word-break: break-all; }
 .sqlbox { font-family: var(--font-num); font-size: var(--t-xs); resize: vertical; margin-bottom: 8px; }

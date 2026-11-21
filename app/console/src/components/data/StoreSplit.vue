@@ -88,7 +88,7 @@ const search = defineModel<string>("search", { default: "" });
   background: var(--panel-2); border-bottom: 1px solid var(--line-soft);
   font-size: var(--t-2xs); color: var(--muted); letter-spacing: .04em;
 }
-.h-t { font-weight: 650; color: var(--fg-2); }
+.h-t { font-weight: 600; color: var(--fg-2); }
 .ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pane-h .pane-tools, .pane-h > :last-child { margin-left: auto; }
 .pane-b { padding: 10px 11px 12px 14px; }

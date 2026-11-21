@@ -755,7 +755,7 @@ const notesOpen = ref(false);
 .aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
   padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 600; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 /* 工具栏：ghx 的紧凑分段（一体式底槽 + 选中实底），右侧只留数据年龄 */
@@ -765,7 +765,7 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 .seg { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px; gap: 2px; }
 .seg-b { border: 0; background: none; color: var(--fg-2, inherit); font-size: var(--t-xs); padding: 5px 12px; border-radius: var(--r-sm); cursor: pointer; transition: background .12s, color .12s; }
 .seg-b:hover { color: inherit; }
-.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 650; box-shadow: 0 1px 2px rgba(31, 35, 40, .08); }
+.seg-b.on { background: var(--panel); color: var(--fg); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); }
 .tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .age { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ---------- 状态条：一行 + 左侧状态轨，点开才看详情 ---------- */
@@ -795,7 +795,7 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 }
 .deep:hover { border-color: var(--accent-dim); }
 .deep-l { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.deep-t { font-size: var(--t-sm); font-weight: 650; }
+.deep-t { font-size: var(--t-sm); font-weight: 600; }
 .deep-s { font-size: var(--t-2xs); color: var(--muted); }
 .deep-a { margin-left: auto; font-size: var(--t-lg); color: var(--muted); line-height: 1; }
 
@@ -812,13 +812,13 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 }
 /* 主表盘不画左沿轨道：它本身就是"有数"，那道 2px 留给分块数据 */
 .dial-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.dial-h h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12.5px; color: var(--fg); font-weight: 650; }
+.dial-h h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12.5px; color: var(--fg); font-weight: 600; }
 .dial-h h3::before { content: none; }
 .dial-at { font-size: var(--t-2xs); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dial-v { display: flex; align-items: baseline; gap: 7px; margin-top: 6px; }
 /* clamp：320px 窄屏上 "1,234,567" 用 44px 会溢出，按视口收，上限仍是 44 */
 .dial-n { font-family: var(--font-num); font-size: clamp(30px, 10vw, 40px); line-height: 1.05;
-  font-weight: 700; letter-spacing: -.035em; color: var(--fg);
+  font-weight: 600; letter-spacing: -.035em; color: var(--fg);
   font-variant-numeric: tabular-nums; }
 .dial-u { font-size: var(--t-sm); color: var(--muted); font-family: var(--font-num); }
 .dial-d { margin-top: 3px; font-size: var(--t-xs); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
@@ -847,7 +847,7 @@ button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 .notes { margin: 12px 0 0; border: 0; border-top: 1px solid var(--line-soft); background: transparent; }
 .notes-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%;
   padding: 9px 2px; background: none; border: 0; color: var(--muted); font-size: var(--t-2xs); text-align: left; cursor: pointer;
-  font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  font-weight: 600; letter-spacing: 0; text-transform: none; }
 .notes-h .tw { font-size: var(--t-2xs); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none;
   font-weight: 400; letter-spacing: 0; text-transform: none; }
 .notes-b { padding: 0 2px 10px; font-size: var(--t-xs); line-height: 1.6; color: var(--muted); }

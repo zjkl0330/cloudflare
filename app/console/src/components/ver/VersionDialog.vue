@@ -407,7 +407,7 @@ function strategyText(v: unknown): string {
 .acts { display: flex; align-items: center; gap: 8px; flex: none; max-width: none; text-align: right; }
 .detail { padding: 10px 13px 14px; border-top: 1px solid var(--line-soft); background: var(--panel-2); }
 .detail h4 { margin: 14px 0 6px; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase; }
+  letter-spacing: 0; text-transform: none; }
 .detail h4:first-child { margin-top: 0; }
 .warnline { font-size: var(--t-xs); color: var(--warn); background: rgb(var(--warn-rgb) / .08); border-left: 3px solid var(--warn);
   border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 8px 10px; margin: 0 0 8px; line-height: 1.55; }

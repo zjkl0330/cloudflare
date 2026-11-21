@@ -188,7 +188,7 @@ const configuredNothing = computed(
 .panes .seg-b { flex: 1; padding: 6px 2px; text-align: center; }
 .panes .seg-b span { font-family: var(--font-num); color: var(--muted); font-size: 10px; margin-left: 2px; }
 .list-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 8px; }
-.lh-t { font-size: 12.5px; font-weight: 650; }
+.lh-t { font-size: 12.5px; font-weight: 600; }
 .lh-t b { font-family: var(--font-num); margin-left: 2px; }
 .zq { height: 34px; margin-bottom: 8px; }
 .foot { margin-top: 10px; padding: 9px 11px; border-left: 3px solid var(--warn); background: rgb(var(--warn-rgb) / .08); border-radius: 0 var(--r-sm) var(--r-sm) 0; }

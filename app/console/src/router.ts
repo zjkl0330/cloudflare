@@ -10,6 +10,7 @@ import WorkerDetailView from "./views/WorkerDetailView.vue";
 import PagesDetailView from "./views/PagesDetailView.vue";
 import DatabaseView from "./views/DatabaseView.vue";
 import ZeroTrustView from "./views/ZeroTrustView.vue";
+import { landingPath } from "./lib/views";
 
 /**
  * 底部导航固定 5 个，顺序按他点的来：域名 / 计算 / 看板（正中）/ 数据库 / Zero Trust。
@@ -19,7 +20,7 @@ import ZeroTrustView from "./views/ZeroTrustView.vue";
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/", redirect: "/board" },
+    { path: "/", redirect: () => landingPath() },
     { path: "/domains", name: "domains", component: DomainsView, meta: { tab: "domains", title: "域名" } },
     // 站点详情：DNS / 缓存 / WAF / 工具 / 状态都在这一层，?pane= 记住当前分页
     { path: "/domains/:zone", name: "zone", component: DomainsView, meta: { tab: "domains", title: "域名" } },
@@ -36,6 +37,6 @@ export const router = createRouter({
     { path: "/settings", name: "settings", component: SettingsView, meta: { tab: "settings", title: "设置" } },
     // 令牌管理与设置同属"本机凭据"这一组，但不占底栏；APK 直连才真正可用（视图内有说明）
     { path: "/settings/tokens", name: "tokens", component: TokensView, meta: { tab: "settings", title: "API 令牌" } },
-    { path: "/:pathMatch(.*)*", redirect: "/board" },
+    { path: "/:pathMatch(.*)*", redirect: () => landingPath() },
   ],
 });

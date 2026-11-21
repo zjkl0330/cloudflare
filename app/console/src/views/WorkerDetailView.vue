@@ -525,15 +525,15 @@ function isLive(versionId: unknown): boolean {
       <div v-if="doneMsg" class="small" style="margin-bottom: 8px; color: var(--ok)">{{ doneMsg }}</div>
 
       <div class="list" v-if="myDomains.length">
-        <div v-for="d in myDomains" :key="d.id" class="item">
-          <div style="min-width: 0">
+        <div v-for="d in myDomains" :key="d.id" class="item dom-item">
+          <div class="dom-main">
             <div class="k">{{ d.hostname }}</div>
-            <div class="small muted">
+            <div class="small muted" style="word-break: normal; overflow-wrap: anywhere">
               {{ d.zone_name || "—" }} · {{ d.environment || "production" }}
               <span class="badge" :class="{ live: !!d.cert_id }">{{ d.cert_id ? "有证书" : "无证书记录" }}</span>
             </div>
           </div>
-          <div class="v small" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+          <div class="v small dom-acts">
             <button v-if="d.zone_id" class="ghost sm" type="button" @click="goZone(String(d.zone_id))">DNS</button>
             <button class="ghost sm" type="button" @click="speedTest(String(d.hostname))">测速</button>
             <button class="ghost sm danger" type="button" :disabled="!optIn || busy" @click="askDetachDomain(d)">解绑</button>
@@ -781,7 +781,7 @@ function isLive(versionId: unknown): boolean {
 <style scoped>
 /* 详情页头：名称 + 类型注脚；下面的锚点条横向滚动，不再折成两三行把首屏吃掉 */
 .whead { justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
-.wname { margin: 0; font-size: var(--t-lg); font-weight: 650; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.wname { margin: 0; font-size: var(--t-lg); font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .jn { flex-wrap: nowrap; gap: 6px; margin-bottom: 12px; padding-bottom: 2px;
   overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .jn::-webkit-scrollbar { display: none; }
@@ -799,7 +799,7 @@ function isLive(versionId: unknown): boolean {
 
 /* 卡片标题在 .row 里时（自定义域名那张）也要落到同一档眉题，别变成第二个大标题 */
 .card > .row > h3 { display: flex; align-items: center; gap: 8px; margin: 0;
-  font-size: var(--t-sm); color: var(--fg); font-weight: 650; letter-spacing: .01em; }
+  font-size: var(--t-sm); color: var(--fg); font-weight: 600; letter-spacing: .01em; }
 
 button.sm { height: 28px; padding: 0 10px; font-size: var(--t-2xs); }
 button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
@@ -826,7 +826,7 @@ button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
   display: flex; align-items: center; gap: 8px; padding: 0 2px 7px;
   border-bottom: 1px solid var(--line-soft); cursor: pointer; list-style: none;
   font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
-  letter-spacing: .04em; text-transform: uppercase;
+  letter-spacing: 0; text-transform: none;
 }
 .foldcard > summary::-webkit-details-marker { display: none; }
 .foldcard > summary::before {
@@ -842,4 +842,8 @@ button.danger { color: var(--bad); border-color: rgb(var(--bad-rgb) / .45); }
 .foldcard > .card > h3 { display: none; }
 /* 锚点跳过来时，折叠态也要看得见落点（原来只有 .card 有 flash，details 上等于没反馈） */
 .foldcard.flash > summary { color: var(--accent); border-bottom-color: var(--accent); }
+/* 域名条目：标题与元信息占满一行，动作按钮落到第二行，窄屏不挤成竖排 */
+.item.dom-item { flex-direction: column; align-items: stretch; gap: 8px; }
+.dom-main { min-width: 0; }
+.item .dom-acts { display: flex; width: 100%; gap: 6px; flex-wrap: wrap; justify-content: flex-start; max-width: none; }
 </style>

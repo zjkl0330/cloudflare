@@ -73,7 +73,7 @@ function toggle(r: any) {
 .drow:hover { background: var(--panel-2); }
 .drow:last-of-type { border-bottom: 0; }
 .lead { min-width: 0; flex: 1; }
-.name { font-size: var(--t-sm); font-weight: 650; word-break: break-all; }
+.name { font-size: var(--t-sm); font-weight: 600; word-break: break-all; }
 .content { color: var(--muted); font-size: var(--t-xs); margin-top: 3px; word-break: break-all; }
 .content.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .unfold { align-self: flex-start; margin-top: 4px; background: none; border: 0; padding: 2px 0; color: var(--accent); font-size: var(--t-2xs); font-family: inherit; cursor: pointer; }

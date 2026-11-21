@@ -16,6 +16,7 @@ import { getWorkerRepo, type GitPlatform, type WorkerRepoLink } from "../lib/git
 import { dt, rel } from "../lib/fmt";
 import { labelOf, type CfAccount } from "../lib/accounts";
 import { agg, aggAccounts, aggSkipped, focusAccount, mapLimit } from "../lib/aggregate";
+import { loadViewPrefs } from "../lib/views";
 
 const nav = useRouter();
 const route = useRoute();
@@ -312,9 +313,9 @@ onMounted(() => {
 });
 
 /** 顶部分段：默认「看板」= Workers + Pages 二合一（一块看板读完两类资源）；
- *  「Workers」/「Pages」两档才是逐项动手的完整列表。 */
+ *  「Workers」/「Pages」两档才是逐项动手的完整列表。设置页的默认档只兜底，URL 优先。 */
 const kind = ref<"all" | "workers" | "pages">(
-  route.query.kind === "workers" || route.query.kind === "pages" ? route.query.kind : "all",
+  route.query.kind === "workers" || route.query.kind === "pages" ? route.query.kind : loadViewPrefs().compute,
 );
 /** 档位写进 URL：功能索引和分享链接可以直接落到 Workers / Pages */
 watch(kind, (v) => nav.replace({ query: v === "all" ? {} : { kind: v } }));
@@ -511,7 +512,7 @@ function toggleClean(w: string) {
 .aggbar { border: 1px solid var(--line); border-radius: var(--r-sm);
   padding: 9px 11px; margin-bottom: 10px; background: var(--panel); }
 .aggtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.aggt { font-size: var(--t-sm); font-weight: 650; color: var(--accent); }
+.aggt { font-size: var(--t-sm); font-weight: 600; color: var(--accent); }
 .agg-err { color: var(--bad); margin-top: 3px; }
 /* 统一搜索条：输入框吃掉剩余宽度，排序键与匹配数靠右 */
 .ctools { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; flex-wrap: wrap; }
@@ -533,7 +534,7 @@ function toggleClean(w: string) {
   border-bottom: 1px solid var(--line-soft);
   cursor: pointer; list-style: none;
   font-size: var(--t-2xs); font-weight: 600; color: var(--muted);
-  letter-spacing: .04em; text-transform: uppercase;
+  letter-spacing: 0; text-transform: none;
 }
 .foldcard > summary::-webkit-details-marker { display: none; }
 .foldcard > summary::before {

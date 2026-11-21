@@ -56,7 +56,7 @@ const hasFoot = computed(() => !!slots.foot);
   display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
   padding: 10px 14px 8px; border-bottom: 1px solid var(--line-soft); flex: none;
 }
-.ds-head h3 { margin: 0; font-size: var(--t-md); font-weight: 650; letter-spacing: -.01em; }
+.ds-head h3 { margin: 0; font-size: var(--t-md); font-weight: 600; letter-spacing: -.01em; }
 .ds-sub { margin: 4px 0 0; font-size: var(--t-2xs); color: var(--muted); line-height: 1.5; }
 .ds-x {
   flex: none; height: 28px; padding: 0 9px; background: var(--panel-2); border: 1px solid var(--line);

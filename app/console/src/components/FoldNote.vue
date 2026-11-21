@@ -37,7 +37,7 @@ const open = ref(false);
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px; width: 100%;
   padding: 8px 2px; background: none; border: 0; text-align: left; cursor: pointer;
   font-family: inherit; font-size: var(--t-2xs); color: var(--muted); font-weight: 600;
-  letter-spacing: .04em; text-transform: uppercase;
+  letter-spacing: 0; text-transform: none;
 }
 .fn-x { font-size: var(--t-2xs); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; flex: none;
   font-weight: 400; letter-spacing: 0; text-transform: none; }
