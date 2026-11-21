@@ -129,11 +129,15 @@ function switchZone(z: any) {
   nav.replace("/domains/" + encodeURIComponent(String(z.id)));
 }
 watch(() => agg.on, (on) => { if (on) nav.replace("/domains"); });
-/** 深链里的 zone id 不属于当前账号（或已被删）就退回列表，不把空详情留在屏幕上 */
+/** 深链里的 zone id 不属于当前账号（或已被删）就退回列表，不把空详情留在屏幕上。
+ *  这里必须直接读路由参数，不能读 zoneId：从列表点进来时 isDetail 先变 true、
+ *  路由 watcher 还没把 zoneId 赋上，拿空串去比对会把刚点开的详情立刻弹回列表。 */
 watch([() => zones.value.data, isDetail], () => {
   const arr = zones.value.data;
   if (!arr || !isDetail.value) return;
-  if (!arr.some((z: any) => String(z.id) === zoneId.value)) nav.replace("/domains");
+  const want = String(route.params.zone ?? "");
+  if (!want) return;
+  if (!arr.some((z: any) => String(z.id) === want)) nav.replace("/domains");
 });
 const zoneQ = computed(() => zoneQuery.value.trim().toLowerCase());
 const zonesFiltered = computed(() => {
@@ -332,6 +336,19 @@ const currentZone = computed(() => (zones.value.data ?? []).find((z: any) => Str
 const nsOf = (z: any): string[] => (Array.isArray(z?.vanity_name_servers) && z.vanity_name_servers.length
   ? z.vanity_name_servers : z?.name_servers) ?? [];
 const planOf = (z: any): string => z?.plan?.name || z?.plan?.legacy_id || "套餐未知";
+/** 当前站点从 `GET /zones` 拿到的两组 NS：CF 的 DNS 记录接口不会把它们列进 records，必须单独摆出来 */
+const currentNs = computed<string[]>(() => (currentZone.value ? nsOf(currentZone.value) : []));
+const nsCopied = ref(false);
+async function copyNs() {
+  if (!currentNs.value.length) return;
+  try {
+    await navigator.clipboard.writeText(currentNs.value.join("\n"));
+    nsCopied.value = true;
+    setTimeout(() => { nsCopied.value = false; }, 1600);
+  } catch {
+    nsCopied.value = false;
+  }
+}
 const ZONE_STATE: Record<string, string> = {
   active: "已生效", pending: "待激活", initializing: "初始化中", paused: "已暂停",
   deactivated: "已停用", moved: "已迁移", pending_deletion: "待删除", deleted: "已删除",
@@ -792,6 +809,19 @@ async function confirmSheet() {
           {{ statsLine }}
         </div>
 
+        <!-- 名称服务器：CF 的 DNS 记录接口不返回这两条 NS，单独从站点对象读出来 -->
+        <div class="nsbar" v-if="!agg.on && currentZone">
+          <div class="nsh">
+            <span class="nsk">名称服务器</span>
+            <span class="small muted">Cloudflare 分配</span>
+            <button v-if="currentNs.length" class="ns-copy" type="button" @click="copyNs">{{ nsCopied ? "已复制" : "复制" }}</button>
+          </div>
+          <div v-if="currentNs.length" class="nsv">
+            <code v-for="n in currentNs" :key="n">{{ n }}</code>
+          </div>
+          <div v-else class="small muted">这个站点是 CNAME 接入，没有需要改写的 NS。</div>
+        </div>
+
         <ErrorNote :err="records.err || domains.err || routes.err" v-if="!agg.on" />
         <div v-for="g in pageDomainErrs" :key="'pd-' + g.project" class="small agg-err">
           {{ g.project }} · Pages 自定义域名读取失败：{{ g.err.hint }}
@@ -1110,6 +1140,20 @@ details.grp .list .item:first-child { border-top: 1px solid var(--line-soft); }
   background: var(--panel); color: var(--muted); font-size: var(--t-2xs); line-height: 1.5;
   border-radius: var(--r-sm);
 }
+
+/* ---------- 名称服务器：两条 NS 单独成块，不混进 DNS 记录表 ---------- */
+.nsbar {
+  border: 1px solid var(--line-soft); background: var(--panel-2);
+  border-radius: var(--r-sm); padding: 8px 10px; margin: 0 0 10px;
+}
+.nsh { display: flex; align-items: baseline; gap: 8px; }
+.nsk { font-size: var(--t-2xs); color: var(--muted); font-weight: 600; }
+.ns-copy {
+  margin-left: auto; border: 0; background: none; padding: 0; color: var(--brand-ink);
+  font-size: var(--t-2xs); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+.nsv { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.nsv code { background: none; padding: 0; font-size: var(--t-xs); color: var(--fg-2); word-break: break-all; }
 
 /* ---------- DNS 搜索与快筛 ---------- */
 .dns-filters { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 9px; }
