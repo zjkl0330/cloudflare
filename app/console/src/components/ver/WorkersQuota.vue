@@ -90,6 +90,8 @@ const rows = computed(() =>
 );
 const VISIBLE_TOP = 1;
 const showAll = ref(false);
+/** 按 Worker 分布默认折叠：它只是额度的注解，不该跟主读数抢版面 */
+const distOpen = ref(false);
 const shownRows = computed(() => (showAll.value ? rows.value : rows.value.slice(0, VISIBLE_TOP)));
 const barItems = computed(() => shownRows.value.map((r) => ({ label: r.service, value: r.count })));
 const barMax = computed(() => Math.max(1, ...rows.value.map((r) => r.count ?? 0)));
@@ -104,21 +106,25 @@ const windowLabel = computed(() => {
 </script>
 
 <template>
-  <div class="card">
+  <div class="card quota-card">
     <div class="hd">
       <h3>每日额度</h3>
+      <span class="small muted hmeta">
+        <template v-if="plans === null">订阅没取到</template>
+        <template v-else-if="!plans.length">没给套餐标识</template>
+        <template v-else>{{ plans.join(" / ") }}</template>
+      </span>
       <button type="button" class="cal" :aria-expanded="calOpen" @click="calOpen = !calOpen">{{ calOpen ? "收起" : "口径" }}</button>
     </div>
-    <div class="small muted line">
-      订阅
-      <template v-if="plans === null">没取到</template>
-      <template v-else-if="!plans.length">没给套餐标识</template>
-      <template v-else>{{ plans.join(" / ") }}</template>
-      · 上限是文档值
-    </div>
-    <div v-if="windowLabel" class="small muted line">窗口 {{ windowLabel }}</div>
 
     <div class="cal-x" v-if="calOpen">
+      <p>
+        订阅
+        <template v-if="plans === null">没取到</template>
+        <template v-else-if="!plans.length">没给套餐标识</template>
+        <template v-else>{{ plans.join(" / ") }}</template>
+        <template v-if="windowLabel"> · 窗口 {{ windowLabel }}</template>
+      </p>
       <p>这块列的是本账号免费档<b>按日（UTC 午夜）重置</b>的 Workers 额度。两条上限（10 万 / 20 万）都是 Cloudflare <b>公开文档值</b>，没有任何接口返回配额；能读到订阅时把套餐标在上面。</p>
       <p><b>Workers 请求数</b>来自网关在同一条 <code>/v1/workers/usage</code> 里并的 GraphQL 账号级数据集 <code>workersInvocationsAdaptive.sum.requests</code>（2026-10-11 实测，与 CF 控制台 Workers 分析页同源）。它是 Workers 口径，跟看板那个<b>站点（zone）HTTP 请求数</b>不是一回事，两块不能互相当分子。这条 best-effort：万一这次没取到，会退回"没取到"而不是 0。</p>
       <p><b>Workers 可观测性事件</b>来自 <code>observability/usage</code>，是<b>事件数</b>不是请求数；下面那条按 Worker 的分布同理。</p>
@@ -133,29 +139,36 @@ const windowLabel = computed(() => {
           <span v-if="q.kind === 'ok'" class="qnum">{{ num(q.usage) }}<span class="qlim"> / {{ num(q.limit) }}</span></span>
           <span v-else class="qnum miss">没取到<span class="qlim">（上限 {{ num(q.limit) }}/日）</span></span>
         </div>
-        <div class="track"><span v-if="q.kind === 'ok'" class="fill" :style="{ width: pct(q.usage ?? 0, q.limit) + '%' }" /><span v-else class="fill none" /></div>
-        <div v-if="q.kind === 'ok'" class="small muted line">
-          接口值 · {{ pct(q.usage ?? 0, q.limit).toFixed(2) }}%<span v-if="q.key === 'requests' && reqErrors !== null"> · 错误 {{ num(reqErrors) }}</span><span v-if="q.key === 'events'"> · {{ bytes(restBytes) }}</span>
+        <div class="qbar">
+          <div class="track"><span v-if="q.kind === 'ok'" class="fill" :style="{ width: pct(q.usage ?? 0, q.limit) + '%' }" /><span v-else class="fill none" /></div>
+          <span v-if="q.kind === 'ok'" class="qmeta">{{ pct(q.usage ?? 0, q.limit).toFixed(2) }}%<span v-if="q.key === 'requests' && reqErrors !== null"> · 错误 {{ num(reqErrors) }}</span><span v-if="q.key === 'events'"> · {{ bytes(restBytes) }}</span></span>
+          <span v-else class="qmeta">不是 0：这条这次没取到{{ q.extra ? "（" + q.extra + "）" : "" }}</span>
         </div>
-        <div v-else class="small muted line"><b>不是 0</b>：这条这次没取到{{ q.extra ? "（" + q.extra + "）" : "" }}</div>
       </div>
-      <button v-if="okRows.length > VISIBLE_QUOTA" type="button" class="fold" @click="showAllQuota = !showAllQuota">
-        {{ showAllQuota ? "收起（只看最多那条）" : `展开可测额度（还有 ${okRows.length - VISIBLE_QUOTA} 条）` }}
-      </button>
-
-      <!-- ③ 按 Worker 的事件分布：和额度一样默认只显最高那条，不跟「长列表默认显示」这一档走 -->
-      <div v-if="rows.length" class="small muted line">按 Worker（事件数）</div>
-      <BarList v-if="rows.length" :items="barItems" :format="num" :max="barMax" />
-      <button v-if="rows.length > VISIBLE_TOP" type="button" class="fold" @click="showAll = !showAll">
-        {{ showAll ? "收起（只看最多那条）" : `展开全部（还有 ${rows.length - VISIBLE_TOP} 条）` }}
-      </button>
+      <!-- 次要入口合并成一行；按 Worker 分布默认折叠，不跟主读数抢版面 -->
+      <div v-if="okRows.length > VISIBLE_QUOTA || rows.length" class="qfoot">
+        <button v-if="okRows.length > VISIBLE_QUOTA" type="button" class="fold" @click="showAllQuota = !showAllQuota">
+          {{ showAllQuota ? "收起额度（只看最多那条）" : `展开可测额度（还有 ${okRows.length - VISIBLE_QUOTA} 条）` }}
+        </button>
+        <button v-if="rows.length" type="button" class="fold" @click="distOpen = !distOpen">
+          按 Worker 分布（{{ rows.length }}）{{ distOpen ? "▾" : "▸" }}
+        </button>
+      </div>
+      <div v-if="distOpen && rows.length" class="dist">
+        <BarList :items="barItems" :format="num" :max="barMax" />
+        <button v-if="rows.length > VISIBLE_TOP" type="button" class="fold" @click="showAll = !showAll">
+          {{ showAll ? "收起（只看最多那条）" : `展开全部（还有 ${rows.length - VISIBLE_TOP} 条）` }}
+        </button>
+      </div>
     </AsyncBlock>
   </div>
 </template>
 
 <style scoped>
 .hd { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.hd > h3 { margin-bottom: 0; }
+.hd > h3 { margin-bottom: 0; flex: none; }
+/* 订阅套餐放在标题右边，只占一行；口径键仍是最右的次级动作 */
+.hmeta { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 口径键退成小号幽灵键，跟列表行里的次级动作同一档 */
 .cal { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: var(--t-2xs);
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer; flex: none; }
@@ -164,19 +177,26 @@ const windowLabel = computed(() => {
   padding: 8px 10px; font-size: var(--t-xs); line-height: 1.6; color: var(--fg-2); }
 .cal-x p { margin: 0 0 6px; }
 .cal-x p:last-child { margin-bottom: 0; }
-.line { margin-top: 4px; }
-.quota { margin-top: 12px; }
+.quota { margin-top: 10px; }
 .quota.na { opacity: .9; }
 .qhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .qname { font-size: var(--t-sm); font-weight: 600; }
 .qnum { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: var(--t-md); }
 .qnum.miss { color: var(--muted); font-size: var(--t-sm); }
 .qlim { color: var(--muted); font-size: var(--t-xs); margin-left: 4px; }
-.track { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--line-soft) inset; margin: 6px 0 4px; }
+/* 进度条与百分比同一行：读数不再单独占一行 */
+.qbar { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.track { flex: 1; height: 5px; background: var(--panel-2); border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px var(--line-soft) inset; }
 .fill { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .fill.none { width: 0; }
-.fold { align-self: flex-start; margin-top: 6px; background: var(--panel-2); border: 1px solid var(--line);
-  border-radius: var(--r-sm); color: var(--muted); height: 28px; padding: 0 10px; font-size: var(--t-2xs); cursor: pointer; }
-.fold:hover { color: var(--accent); border-color: var(--accent-dim); }
+.qmeta { flex: none; font-size: var(--t-2xs); color: var(--muted); font-variant-numeric: tabular-nums; }
+.dist { margin-top: 8px; }
+.quota-card { padding-top: 11px; padding-bottom: 11px; }
+.quota-card > .hd > h3 { font-size: var(--t-sm); }
+.fold { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--muted);
+  font-size: var(--t-2xs); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.fold:hover { color: var(--accent); }
+.qfoot { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 8px; }
+.qfoot .fold { margin-top: 0; }
 code { font-family: var(--font-num); }
 </style>
